@@ -5176,7 +5176,6 @@ function New_getContractListPage(){
     var sec=$('section#contracts');
     if (sec.length){
       $(sec).html(''); 
-      $(sec).html(s); 
     }
     else{
       sec = document.createElement('section');
@@ -5234,10 +5233,10 @@ function New_getOrdersListPage(){
   s=s+'       </div> ';
   s=s+'   <div id="orders-tree-tabs" class="orders-body">';
   if (TStream.OrdersCount>0){
-    s=s+'       <table id="orders-table-header" class="table table-header"> ';
-    s=s+'         <tr>';
-    s=s+'           <td class="col-checkbox" ><input title="Отметить все/снять отметку" type="checkbox" id="checkbox-orders-checkall" onClick="checkAll(this.checked)">'+
-                                               '<label for="checkbox-orders-checkall"></label></td>;'
+    s=s+'<table id="orders-table-header" class="table table-header">';
+    s=s+'<tr>';
+    s=s+'<td class="col-checkbox" ><input title="Отметить все/снять отметку" type="checkbox" id="checkbox-orders-checkall" onClick="checkAll(this.checked)">'+
+                                               '<label for="checkbox-orders-checkall"></label></td>';
     s=s+'<td class="col pointer" >';
     s=s+fnDrawTitleForSortingRedisign2(TStream.SortOrder, TStream.SortDesc, 'ordersorder', 'ordersdesc', 'ORDRDATE', 'Дата&nbsp;заказа');
     s=s+'</td>';
@@ -5266,11 +5265,11 @@ function New_getOrdersListPage(){
       s=s+'       </table>';
       s=s+'     <div class="order-table-body-wrap" id="orders-table-body-wrap" data-mcs-theme="inset-dark">' ;
       s=s+'       <form method=post id="neworderform" action='+scriptname+'/order onSubmit="return check_neworder();">';
-      s=s+'       <input type=hidden name=contract value="'+TStream.ContractId+'">';
+      s=s+'       <input type=hidden name=contract value="'+TStream.ContractID+'">';
       s=s+'       <table class="table table-body pointer" id="orders-table-body">' ;
-      for (i=0; i<TStream.ContractsCount; i++) {
+      for (i=0; i<TStream.OrdersCount; i++) {
         if ((TStream.arrtable[i].StatusName=arOrderStatusNames[orstForming]) && (TStream.arrtable[i].orderCurrency==TStream.ballsName)) { //для страницы лоялити
-          s=s+'<tr id="tr'+TStream.CurOrderID+'" class="orders-tr '+fnIfStr((i%2)==0, '', ' current')+'"  onclick="location.href=\''+scriptname+'/loyalty?&contract='+TStream.arrtable[i].CurContractID+'&bonus=true\'">'
+          s=s+'<tr id="tr'+TStream.arrtable[i].CurOrderID+'" class="orders-tr '+fnIfStr((i%2)==0, '', ' current')+'"  onclick="location.href=\''+scriptname+'/loyalty?&contract='+TStream.arrtable[i].CurContractID+'&bonus=true\'">'
         }
         else if (TStream.arrtable[i].orderCurrency==TStream.ballsName) {
                s=s+'<tr id="tr'+TStream.arrtable[i].CurOrderID+'" class="orders-tr '+fnIfStr((i%2)==0, '', ' current')+'" onclick="location.href=\''+scriptname+'/order?order='+TStream.arrtable[i].CurOrderID+'&contract='+TStream.arrtable[i].CurContractID+'&bonus=true\'">'
@@ -5279,7 +5278,7 @@ function New_getOrdersListPage(){
                s=s+'<tr id="tr'+TStream.arrtable[i].CurOrderID+'" class="orders-tr '+fnIfStr((i%2)==0, '', ' current')+'" onclick="location.href=\''+scriptname+'/order?order='+TStream.arrtable[i].CurOrderID+'&contract='+TStream.arrtable[i].CurContractID+'&bonus=false\'">';
              }
         if (TStream.arrtable[i].orderCurrency==TStream.ballsName) {
-          s=s+'<td class="col-checkbox with-border" '+fnIfStr(TStream.arrtable[i].RowCount>1, ' rowspan='+IntToStr(TStream.arrtable[i].RowCount), '')+'></td>' //Дата заказа
+          s=s+'<td class="col-checkbox with-border" '+fnIfStr(TStream.arrtable[i].RowCount>1, ' rowspan='+TStream.arrtable[i].RowCount, '')+'></td>' //Дата заказа
         }
         else {
           s=s+'<td class="col-checkbox with-border" '+fnIfStr(TStream.arrtable[i].RowCount>1, ' rowspan='+TStream.arrtable[i].RowCount, '')+' ><input type=checkbox name="cb'+TStream.arrtable[i].CurOrderID+'" id="cb'+i+'"  '+
@@ -5288,7 +5287,7 @@ function New_getOrdersListPage(){
         }
         s=s+'<td class="col with-border" '+fnIfStr(TStream.arrtable[i].RowCount>1, ' rowspan='+TStream.arrtable[i].RowCount, '')+'>'+TStream.arrtable[i].orderDate+'</td>'; //Дата заказа
         s=s+'<td class="col with-border" '+fnIfStr(TStream.arrtable[i].RowCount>1, ' rowspan='+TStream.arrtable[i].RowCount, '')+'>'+TStream.arrtable[i].orderNum+'</td>'; //Номер заказа
-        if (TStream.arrtable[i].ContractsCount>1) {
+        if (TStream.ContractsCount>1) {
           s=s+'<td class="col with-border" '+fnIfStr(TStream.arrtable[i].RowCount>1, ' rowspan='+TStream.arrtable[i].RowCount, '')+' title="">'+TStream.arrtable[i].CurContractName+'</td>';
         }
         s=s+'<td class="col with-border" title="'+fnIfStr(TStream.arrtable[i].ComentSum !='', TStream.arrtable[i].ComentSum, '')+'" style="'+fnIfStr(TStream.arrtable[i].ComentSum !='','color: red; font-weight: bold;', '')+
@@ -5332,7 +5331,7 @@ function New_getOrdersListPage(){
         s=s+'<td class="col" title="'+TStream.arrtable[i].SelfCommentary+'">'+TStream.arrtable[i].temp+'</td>'; //Собственный комментарий заказа
         s=s+'</tr>';
       }
-      if (TStream.arrtable[i].Commentary2 !='') {
+      if (TStream.Commentary2 !='') {
         jqswMessage(TStream.arrtable[i].Commentary2);
       }
       s=s+'       </table>';
@@ -5352,16 +5351,16 @@ function New_getOrdersListPage(){
     var sec=$('section#orders');
     if (sec.length){
       $(sec).html(''); 
-      $(sec).html(s); 
     }
     else{
       sec = document.createElement('section');
       sec.id='orders';
-      sec.class='order';
+      sec.className='order';
       var main=document.getElementById("main-content");
       main.appendChild(sec);
+      $(sec).html(''); 
     }
-    $(sec).html(s);
+    $(sec).html(s); 
     synqcols(document.getElementById('tablecontent2'), document.getElementById('orders-table-header'), document.getElementById('orders-table-body'), $("#orders-table-body").width(), false); 
     if (checkOrdersFilterCookie()==1){
       if ( !$(".orders-filter").hasClass("set")) {
