@@ -742,6 +742,26 @@ function del_orders() {
   }*/
 }
 
+function del_ordersNew() {
+  //if (document.getElementById("btim_delorders").style.cursor=='default') {
+  // 	return;
+  //}
+  jConfirm('Вы действительно хотите удалить отмеченные заказы?', 'Да','Нет',function get(res){
+     if (res){  
+       var s='';
+       var j=$('#orders-table-body tr').length;
+       for (i=0; i<j; i++) {
+         if ($("#cb"+i).length){
+           if (document.getElementById("cb"+i).checked) {
+             s+=document.getElementById("cb"+i).name.substring(2, 100)+',';
+           }
+         }  
+       }
+       ec("delorders", "ordercodes="+s, "newbj");
+     }
+  });
+}
+
 // отправляет команду удаления отмеченных позиций в заказе конкретном
 function del_order() {
  if (document.getElementById("addlines")) {
@@ -777,6 +797,15 @@ function rpio() {
 */
   }
 }
+
+function rpioNew() {
+ jConfirm('Вы действительно хотите обновить цены в неотправленных заказах?', 'Ок','Отмена',function get(res){
+   if (res){  
+     ec("refresh_prices", "", "newbj");
+   }
+ });
+}
+
 
 function checkBonusOrder(){
   var balans=$("#user-unit-limit").text();
@@ -1325,26 +1354,30 @@ function obmaj(obmtype) {
    ec(obmtype, data, 'abj');
    }
   });
+}
 
- /*
-  if (confirm('Вы действительно хотите '+((obmtype=='obm')?'создать новый заказ по отмеченным':'объединить отмеченные заказы')+'?')) {
-    var newinput;
-   	form=document.getElementById("neworderform");
-   	j=0;
-    var contrel=$("#contract");
-    data="contract="+((contrel.length)?contrel.val():"");
-    var j=$('#orders-table-body tr').length;
-    var k=0;
-    for (i=0; i<j; i++) {
-      if ($("#cb"+i).length){
-        if (document.getElementById("cb"+i).checked) {
-  		    data=data+'&name'+(k++)+'='+document.getElementById("cb"+i).name.substring(2, 100);
-    		}
+// отправляет команду создания нового заказа по отмеченным
+// obm - OrderByMarket
+function obmajNew(obmtype) {
+  jConfirm('Вы действительно хотите '+((obmtype=='obm')?'создать новый заказ по отмеченным':'объединить отмеченные заказы')+'?', 'Ок','Отмена',function get(res){
+   if (res){  
+     var newinput;
+   	 form=document.getElementById("neworderform");
+   	 j=0;
+     var contrel=$("#contract");
+     data="contract="+((contrel.length)?contrel.val():"");
+     var j=$('#orders-table-body tr').length;
+     var k=0;
+     for (i=0; i<j; i++) {
+       if ($("#cb"+i).length){
+         if (document.getElementById("cb"+i).checked) {
+  	  	    data=data+'&name'+(k++)+'='+document.getElementById("cb"+i).name.substring(2, 100);
+      	}
       }  
-   	}
-    ec(obmtype, data, 'abj');
-
-  }*/
+     }
+   ec(obmtype, data, 'newbj');
+   }
+  });
 }
  
  // инициирует создание нового заказа
@@ -1354,6 +1387,15 @@ function obmaj(obmtype) {
      if (res){  
        var contrel=$("#contract");
        ec('new_order', "contract="+((contrel.length)?contrel.val():""), 'abj');
+     }
+   });
+ }
+ 
+ function cnoNew() {
+   jConfirm('Вы действительно хотите создать новый заказ?', 'Ок','Отмена',function get(res){
+     if (res){  
+       var contrel=$("#contract");
+       ec('new_order', "contract="+((contrel.length)?contrel.val():""), 'newbj');
      }
    });
  }
@@ -5218,12 +5260,12 @@ function New_getOrdersListPage(){
   s=s+'         <div class="header-title row">';
   s=s+'           <div class="col-xs-5">';
   s=s+'             <ul class="order-list-btn">';
-  s=s+'               <li><a disable="disable" id="btim_nobc" href="#" onclick=" obmaj(\'obm\');" class="orders-check" title="Создать новый заказ по отмеченным"></a></li>';
-  s=s+'               <li><a href="#" id="btim_neworder" onclick="cno();" class="orders-add" title="Создать новый заказ"></a></li>';
-  s=s+'               <li><a href="#" disable="disable" id="btim_unorders" onclick="if ($(this).attr(\'disable\')==\'enable\'){ obmaj(\'jm\'); }" class="orders-join" title="Объединить отмеченные заказы"></a></li>' ;
+  s=s+'               <li><a disable="disable" id="btim_nobc" href="#" onclick=" obmajNew(\'obm\');" class="orders-check" title="Создать новый заказ по отмеченным"></a></li>';
+  s=s+'               <li><a href="#" id="btim_neworder" onclick="cnoNew();" class="orders-add" title="Создать новый заказ"></a></li>';
+  s=s+'               <li><a href="#" disable="disable" id="btim_unorders" onclick="if ($(this).attr(\'disable\')==\'enable\'){ obmajNew(\'jm\'); }" class="orders-join" title="Объединить отмеченные заказы"></a></li>' ;
   s=s+'               <li><a href="#" id="btim_filter" onclick="showorderfilter();" class="orders-filter" title="Фильтр заказов"></a></li>';
-  s=s+'               <li><a href="#" id="btim_refrprice" onclick="rpio();" class="orders-update" title="Обновить цены в неотправленных заказах"></a></li>' ;
-  s=s+'               <li><a href="#" disable="disable" id="btim_delorders" onclick="if ($(this).attr(\'disable\')==\'enable\'){ del_orders(); }" class="orders-del" title="Удалить отмеченные заказы"></a></li>';
+  s=s+'               <li><a href="#" id="btim_refrprice" onclick="rpioNew();" class="orders-update" title="Обновить цены в неотправленных заказах"></a></li>' ;
+  s=s+'               <li><a href="#" disable="disable" id="btim_delorders" onclick="if ($(this).attr(\'disable\')==\'enable\'){ del_ordersNew(); }" class="orders-del" title="Удалить отмеченные заказы"></a></li>';
   if (flGetExcelWareList) {
        s=s+'               <li><a href="#" id="btim_enter-warelist" onclick="$(\'section#enter-ware-list textarea\').css(\'height\',\'350px\'); $(\'#enter-ware-list\').removeClass(\'hide\');" class="orders-enter-warelist" title="Импорт заказа"></a></li>';
   }
@@ -5268,7 +5310,7 @@ function New_getOrdersListPage(){
       s=s+'       <input type=hidden name=contract value="'+TStream.ContractID+'">';
       s=s+'       <table class="table table-body pointer" id="orders-table-body">' ;
       for (i=0; i<TStream.OrdersCount; i++) {
-        if ((TStream.arrtable[i].StatusName=arOrderStatusNames[orstForming]) && (TStream.arrtable[i].orderCurrency==TStream.ballsName)) { //для страницы лоялити
+        if ((TStream.arrtable[i].StatusName==arOrderStatusNames[orstForming]) && (TStream.arrtable[i].orderCurrency==TStream.ballsName)) { //для страницы лоялити
           s=s+'<tr id="tr'+TStream.arrtable[i].CurOrderID+'" class="orders-tr '+fnIfStr((i%2)==0, '', ' current')+'"  onclick="location.href=\''+scriptname+'/loyalty?&contract='+TStream.arrtable[i].CurContractID+'&bonus=true\'">'
         }
         else if (TStream.arrtable[i].orderCurrency==TStream.ballsName) {
@@ -5292,7 +5334,7 @@ function New_getOrdersListPage(){
         }
         s=s+'<td class="col with-border" title="'+fnIfStr(TStream.arrtable[i].ComentSum !='', TStream.arrtable[i].ComentSum, '')+'" style="'+fnIfStr(TStream.arrtable[i].ComentSum !='','color: red; font-weight: bold;', '')+
             ' "'+fnIfStr(TStream.arrtable[i].RowCount>1, ' rowspan='+TStream.arrtable[i].RowCount, '')+'>'+TStream.arrtable[i].orderSum+'</td>'; //Сумма заказа
-        s=s+'<td class="col with-border" '+fnIfStr(TStream.arrtable[i].RowCount>1, ' rowspan='+TStream.arrtable[i].RowCount, '')+'>'+fnIfStr(TStream.arrtable[i].orderCurrency=TStream.ballsName,'<a class="bonus-cell"></a>',TStream.arrtable[i].orderCurrency)+'</td>'; //Валюта заказа
+        s=s+'<td class="col with-border" '+fnIfStr(TStream.arrtable[i].RowCount>1, ' rowspan='+TStream.arrtable[i].RowCount, '')+'>'+fnIfStr(TStream.arrtable[i].orderCurrency==TStream.ballsName,'<a class="bonus-cell"></a>',TStream.arrtable[i].orderCurrency)+'</td>'; //Валюта заказа
         s=s+'<td class="col with-border" '+fnIfStr(TStream.arrtable[i].RowCount>1, ' rowspan='+TStream.arrtable[i].RowCount, '')+'> <span style=\'color: '+TStream.arrtable[i].OrderStatusColor+'\'>'+TStream.arrtable[i].StatusName+'</span>'+TStream.arrtable[i].OrderStatus; //Статус заказа
         if (TStream.arrtable[i].StatusName=arOrderStatusNames[orstForming]){ 
           s=s+'<input id="db'+TStream.arrtable[i].CurOrderID+'" type=hidden >'; // это для работы функций, управляющих доступнностью кнопок удаления, объединения и копирования заказов.
@@ -5305,23 +5347,26 @@ function New_getOrdersListPage(){
               '<td class="col with-border">&nbsp;</td>'+
               '<td class="col with-border">&nbsp;</td>';
         }
-        for (ii=0; i<TStream.arrtable[i].RowCount; ii++) {
+        for (ii=0; ii<TStream.arrtable[i].RowCount; ii++) {
           if (ii>0) {
             s=s+'<tr class="'+fnIfStr((i%2)==0, ' current', '')+'">';
           }
-          if (TStream.arrtable[i].b>0) {
-            s=s+'<td class="col with-border" title="">'+TStream.arrtable[i].OrderType+'</td>'; //Тип документа
+          if (TStream.arrtable[i].RowData[ii][ii].b>0) {
+            s=s+'<td class="col with-border" title="">'+TStream.arrtable[i].RowData[ii][ii].OrderType+'</td>'; //Тип документа
           } else {
-              s=s+'<td class="col with-border">'+TStream.arrtable[i].OrderType+'</td>'; //Тип документа
+              s=s+'<td class="col with-border">'+TStream.arrtable[i].RowData[ii][ii].OrderType+'</td>'; //Тип документа
           }
-          s=s+'<td  class="col with-border"><span style="white-space: nowrap;" ><a target="_blank"  onclick="window.open(\''+scriptname+'/showdoc?type='+TStream.arrtable[i].DocType+'&id='+TStream.arrtable[i].DocId+'&isorders=true\'); event.stopPropagation(); return false;" href="#" title="Склад документа - '+TStream.arrtable[i].OrderStore+'">'+TStream.arrtable[i].DocNum+'</a>';//Номер документа
-          if (TStream.arrtable[i].Commentary !='') {
-            s=s+'<img style="cursor: pointer;" title="'+Commentary+'" onClick=\'jqswfillInfo("'+TStream.arrtable[i].Commentary+'","Комментарий",20,150,10); event.stopPropagation(); return false;\' src="/images/orders/com.png">'; //Комментарий
+          s=s+'<td  class="col with-border"><span style="white-space: nowrap;" ><a target="_blank"  '+
+          'onclick="window.open(\''+scriptname+'/showdoc?type='+TStream.arrtable[i].RowData[ii][ii].DocType+'&id='+TStream.arrtable[i].RowData[ii][ii].DocId+'&isorders=true\'); event.stopPropagation(); return false;" href="#" '+
+          'title="Склад документа - '+TStream.arrtable[i].RowData[ii][ii].OrderStore+'">'+TStream.arrtable[i].RowData[ii][ii].DocNum+'</a>';//Номер документа
+          if (TStream.arrtable[i].RowData[ii][ii].Commentary !='') {
+            s=s+'<img style="cursor: pointer;" title="'+TStream.arrtable[i].RowData[ii][ii].Commentary+'" onClick=\'jqswfillInfo("'+TStream.arrtable[i].RowData[ii][ii].Commentary+'","Комментарий",20,150,10); '+
+            'event.stopPropagation(); return false;\' src="/images/orders/com.png">'; //Комментарий
           }
           s=s+'</span></td>';
-          s=s+'<td class="col with-border">'+TStream.arrtable[i].SumDoc+'</td>'; //Сумма док.
-          s=s+'<td class="col with-border">'+TStream.arrtable[i].CurrencyDoc+'</td>'; //Валюта док.
-          s=s+'<td class="col with-border">'+TStream.arrtable[i].DateDoc+'</td>'; //Дата  док.
+          s=s+'<td class="col with-border">'+TStream.arrtable[i].RowData[ii][ii].SumDoc+'</td>'; //Сумма док.
+          s=s+'<td class="col with-border">'+TStream.arrtable[i].RowData[ii][ii].CurrencyDoc+'</td>'; //Валюта док.
+          s=s+'<td class="col with-border">'+TStream.arrtable[i].RowData[ii][ii].DateDoc+'</td>'; //Дата  док.
           if (ii>0) {
             //s=s+'<td class="col"></td>; //Комментарий
             //s=s+'</tr>';
@@ -5332,7 +5377,7 @@ function New_getOrdersListPage(){
         s=s+'</tr>';
       }
       if (TStream.Commentary2 !='') {
-        jqswMessage(TStream.arrtable[i].Commentary2);
+        jqswMessage(TStream.Commentary2);
       }
       s=s+'       </table>';
       s=s+'<table class="table table-body" cellspacing=0 id="tablecontent2" >';
