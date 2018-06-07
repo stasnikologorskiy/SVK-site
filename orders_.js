@@ -5314,10 +5314,20 @@ function New_getOrdersListPage(){
           s=s+'<tr id="tr'+TStream.arrtable[i].CurOrderID+'" class="orders-tr '+fnIfStr((i%2)==0, '', ' current')+'"  onclick="location.href=\''+scriptname+'/loyalty?&contract='+TStream.arrtable[i].CurContractID+'&bonus=true\'">'
         }
         else if (TStream.arrtable[i].orderCurrency==TStream.ballsName) {
-               s=s+'<tr id="tr'+TStream.arrtable[i].CurOrderID+'" class="orders-tr '+fnIfStr((i%2)==0, '', ' current')+'" onclick="location.href=\''+scriptname+'/order?order='+TStream.arrtable[i].CurOrderID+'&contract='+TStream.arrtable[i].CurContractID+'&bonus=true\'">'
+               if (flNewOrderMode){
+                 s=s+'<tr id="tr'+TStream.arrtable[i].CurOrderID+'" class="orders-tr '+fnIfStr((i%2)==0, '', ' current')+'" onclick="location.href=\''+scriptname+'/universal?act=order&ordernum='+TStream.arrtable[i].CurOrderID+'&contract='+TStream.arrtable[i].CurContractID+'&bonus=true\'">';
+               }
+               else{
+                 s=s+'<tr id="tr'+TStream.arrtable[i].CurOrderID+'" class="orders-tr '+fnIfStr((i%2)==0, '', ' current')+'" onclick="location.href=\''+scriptname+'/order?order='+TStream.arrtable[i].CurOrderID+'&contract='+TStream.arrtable[i].CurContractID+'&bonus=true\'">';
+               }
              }
              else{
-               s=s+'<tr id="tr'+TStream.arrtable[i].CurOrderID+'" class="orders-tr '+fnIfStr((i%2)==0, '', ' current')+'" onclick="location.href=\''+scriptname+'/order?order='+TStream.arrtable[i].CurOrderID+'&contract='+TStream.arrtable[i].CurContractID+'&bonus=false\'">';
+              if (flNewOrderMode){
+                 s=s+'<tr id="tr'+TStream.arrtable[i].CurOrderID+'" class="orders-tr '+fnIfStr((i%2)==0, '', ' current')+'" onclick="location.href=\''+scriptname+'/universal?act=order&ordernum='+TStream.arrtable[i].CurOrderID+'&contract='+TStream.arrtable[i].CurContractID+'&bonus=false\'">';
+               }
+               else{
+                 s=s+'<tr id="tr'+TStream.arrtable[i].CurOrderID+'" class="orders-tr '+fnIfStr((i%2)==0, '', ' current')+'" onclick="location.href=\''+scriptname+'/order?order='+TStream.arrtable[i].CurOrderID+'&contract='+TStream.arrtable[i].CurContractID+'&bonus=false\'">';
+               }
              }
         if (TStream.arrtable[i].orderCurrency==TStream.ballsName) {
           s=s+'<td class="col-checkbox with-border" '+fnIfStr(TStream.arrtable[i].RowCount>1, ' rowspan='+TStream.arrtable[i].RowCount, '')+'></td>' //Дата заказа
@@ -5419,6 +5429,266 @@ function New_getOrdersListPage(){
       $("a#btim_enter-warelist").addClass("hide");
     }
 }
+
+function New_getOrderListPage(){
+  s='';
+  s=s+'<div class="order-container">';
+  s=s+'  <div class="order-header">';
+  s=s+'    <div class="header-title row">';
+  s=s+'      <div class="col-xs-5">';
+  s=s+'        <ul class="order-list-btn">';
+  if (TStream.STATUS==orstForming) {
+    s=s+'          <li><a href="#" onclick="ec(\'refreshprices\', \'order='+TStream.OrderCode+'\',\'abj\');" class="update" title="Обновить цены в заказах"></a></li>';
+    s=s+'          <li><a href="#" class="merge" onclick="ec(\'fillheaderbeforeprocessing\', \'ordr='+TStream.OrderCode+'\',\'abj\'" title="Отправить заказ на обработку"></a></li>';
+  }
+  else {
+    s=s+'          <li><a href="#" class="dop-info"  onclick="ec(\'fillallparametrsorderdopdata\', \'ordercode='+TStream.OrderCode+'\',\'abj\'" title="Показать дополнительную информацию"></a></li>';
+  }
+  if (TStream.CURRENCY==TStream.ballsName) {
+    //s=s+'          <li><a href="#" onclick="window.open('''+Request.ScriptName+'/ac?order='+OrderCode+'&contract='+(IntToStr(ContractID))+''" class="money" title="Показать заказ в '+fnIfStr(acctype='0', 'гривне', 'евро')+'"></a></li>
+  }
+  else {
+    s=s+'          <li><a href="#" onclick=\'window.open("'+scriptname+'/ac?order='+TStream.OrderCode+'&contract='+TStream.ContractID+'");\' class="money" title="Показать заказ в '+fnIfStr(TStream.acctype=='0', 'гривне', 'евро')+'"></a></li>';
+  }
+  if (TStream.STATUS==orstForming) {
+    s=s+'          <li><a href="#" onclick="del_order();" class="del" title="Удалить"></a></li>'; 
+  }
+  s=s+'        </ul>';
+  s=s+'      </div>';
+  s=s+'      <div class="col-xs-7">';
+  s=s+'        <p class="order-info">';
+  s=s+'          <span class="title">Заказ № </span>';
+  s=s+'          <span class="data">'+TStream.ORDRNUM+' от '+TStream.ORDRDATE+' </span>';
+  s=s+'        </p>';
+  s=s+'        <p class="order-info">';
+  s=s+'          <span class="title">Статус:</span>';
+  s=s+'          <span class="data">'+TStream.StatusName+'</span>';
+  s=s+'        </p>';
+  s=s+'        <p class="order-info">';
+  s=s+'          <span class="title">Заказ создал:</span>';
+  s=s+'          <span class="data">'+TStream.Creator+'</span>';
+  s=s+'        </p>';
+  s=s+'      </div>';
+  s=s+'    </div>';
+  s=s+'    <div class="header-notation">';
+  s=s+'    <input type=hidden id="curcontract" name="curcontract" value="'+TStream.ContractID+'" >';
+  s=s+'    <input type=hidden id="cur_order_code" name="cur_order_code" value="'+TStream.OrderCode+'" >';
+  s=s+'      <div class="notation">';
+  if (TStream.STATUS==orstForming) {
+    s=s+'        <label for="notation-input">Примечание "для себя":</label>';
+    s=s+'        <input type="text" name="notation-input" value="'+TStream.SelfCommentary+'" id="notation-input" class="notation-input">';
+    s=s+'        <a href="#" onclick=" var com=$(\'#notation-input\').val(); ec(\'saveselfcommentary\',\'ordr='+TStream.OrderCode+'&coment=\'+com,\'abj\');" class="notation-save-btn" title="Сохранить комментарий"></a>';
+    s=s+'        <a href="#" class="notation-delivery-btn btn" onclick="ec(\'fillheaderbeforeprocessing\', \'ordr='+TStream.OrderCode+'\',\'abj\');" title="Доставка" >Доставка</a>';
+  }
+  else {
+    s=s+'        <label for="notation-input">Примечание "для себя": '+TStream.SelfCommentary+'</label>';
+  }
+  if ((TStream.STATUS==orstForming) && (TStream.ContractsCount>1)) {
+    s=s+'      <a href="#" class="notation-change-btn btn" onclick=\'ec("contractlist","contract='+TStream.ContractID+'","newbj");\' title="Сменить контракт">Сменить</a>';
+    s=s+'      <p class="client-info contract">';
+ }
+ else {
+   s=s+'      <p class="client-info contract hide">';
+ }
+ s+'          <span class="title">Контракт №</span>';
+ s=s+'          <span class="data">'+TStream.ContractName+'</span>';
+ s=s+'        </p>';
+ s=s+'      </div>';
+ s=s+'      <div class="delivery-details">';
+ s=s+'        <p  title="Задать комментарий и данные по получению товара" class="client-info shipment">';
+ if (TStream.STATUS==orstForming) {
+   s=s+'          <span id="orderdeliverydata" onclick=\'ec("fillheaderbeforeprocessing", "ordr='+TStream.OrderCode+'","abj"); \' >'+TStream.deliveryStr+'</span>';
+ }
+ else {
+   s=s+'          <span id="orderdeliverydata" onclick=\' ec("fillallparametrsorderdopdata", "ordercode='+TStream.OrderCode+'","newbj"); return false;\' >'+TStream.deliveryStr+'</span>';
+ }
+ if (flMeetPerson) {
+   s=s+'        <p class="client-info meet-person">';
+   s=s+'          <span class="">Встречающий: </span>';
+   s=s+'          <span class="data">'+TStream.AccMeetText+'</span>';
+   s=s+'        </p>';
+ }
+ //          s=s+'        <p class="client-info delivery">';
+ //          s=s+'          <span class="title">Доставка:</span>';
+ //          s=s+'          <span class="data">'+deliveryStr+'</span>';
+ s=s+'        </p>';
+ //          s=s+'        <p class="client-info plan">';
+ //          s=s+'          <span class="title">План прибытия:</span>';
+ //          s=s+'          <span class="data">02.06.2016, 9:00</span>';
+ //          s=s+'        </p>';
+ s=s+'      </div>';
+ s=s+'    </div>';
+ s=s+'  </div>';
+ s=s+'  <div class="order-body" id="order-body">';
+ s=s+'    <div class="table-header-wrap">';
+ s=s+'      <table class="table table-header" id="order-table-header">';
+ s=s+'        <tr>';
+ if (TStream.STATUS==orstForming) {
+   s=s+'          <th class="col-checkbox">';
+   s=s+'            <input type="checkbox" class="order-select-all" id="order-select-all" onclick="checkAllOrder(this.checked);">'; 
+   s=s+'            <label for="order-select-all" class="order-select-all"></label>';
+   s=s+'          </th>';
+ }
+ s=s+'          <th class="col-discription">Наименование</th>';
+ if (TStream.STATUS==orstForming) {
+   s=s+'          <th class="col"></th>';
+ }
+ if ((TStream.StoragesCount>1) || (TStream.STATUS !=orstForming)) {
+   s=s+'        <th class="col" title="Общее количество товара в заказе">Количество</th>';
+ }
+ for (i=0; i<TStream.Storages.length; i++) {
+    s=s+'<th title="'+TStream.Storages[i].FullName+'">'+TStream.Storages[i].ShortName+'</th>';
+ }
+ s=s+'          <th class="col" title="Единица измерения товара">Единица</th>';
+ s=s+'          <th title="Входная цена" class="col">Цена</th>';
+ s=s+'          <th class="col" title="Общая сумма заказа" id="sumcell" >'+TStream.ORDRSUM+' '+TStream.CURRENCY+'</th>';
+ if (TStream.flUber) {
+   if (!TStream.IsUberClient) {
+     if (TStream.CURRENCY!=TStream.ballsName) {
+       s=s+'        <th class="col" title="Общее количество '+TStream.ballsName+'" id="totalballs"></th>';
+     }
+   }
+ }
+ else{
+   if (TStream.CURRENCY!=TStream.ballsName) {
+     s=s+'        <th class="col" title="Общее количество '+ballsName+'" id="totalballs"></th>';
+   }
+ }
+ s=s+'          <th></th>';
+ s=s+'        </tr>';
+ s=s+'      </table>';
+ s=s+'    </div>';
+ s=s+'    <div class="order-table-body-wrap" id="order-table-body-wrap" data-mcs-theme="inset-dark">';
+ s=s+'      <table class="table table-body" id="order-table-body">';
+ for (i=0; i<TStream.LineQty; i++) {
+   s=s+'<tr id="line'+TStream.arrtable[i].CurLine+'"'+' class="order-tr'+fnIfStr((i%2)==0, ' current', '')+'">';
+   if (TStream.STATUS==orstForming) {
+     s=s+'<td class="col-checkbox with-border">'+
+         '<input type="checkbox" name="cb'+TStream.arrtable[i].CurLine+'" id="cb'+i+'" >'+
+         '<label for="cb'+i+'"></label>'+
+         '</td>';
+     s=s+'<td id="td'+TStream.arrtable[i].CurWareCode+'" class="col-discription">';
+   }
+   else{
+     s=s+'<td id="td'+TStream.arrtable[i].CurWareCode+'" class="col-discription with-border">';
+   }
+   s=s+'<a title="'+TStream.arrtable[i].Brand+'" onclick="return viewWareSearchDialog(this);" '+
+       'href="'+Request.ScriptName+'/wareinfo?warecode='+TStream.arrtable[i].CurWareCode+'&model=&node=&eng=&filter=&btnout=true&bonus='+
+       TStream.IsBonus+'" target="_blank" warecode="'+TStream.arrtable[i].CurWareCode+'" style="color: #000;"><span class="title">'+TStream.arrtable[i].WareName+'</span></a>';   // наименование товара
+   s=s+'</td>';
+   if (TStream.STATUS==orstForming) {
+     s=s+'<td class="col to-order with-border">';
+     s=s+'  <a href="#" onclick="checkwareqty('+TStream.arrtable[i].CurWareCode+', this,\'false\');" class="btn" title="Проверить наличие товара">'; 
+     s=s+'    <span>Проверить</span>';
+     s=s+'  </a>';
+     s=s+'</td>';
+   }
+   if ((TStream.StoragesCount>1) || (TStream.STATUS!=orstForming)) {
+     s=s+'<td class="col with-border">'+TStream.arrtable[i].Zakaz+'</td>';   // заказ  всего по строчке
+   } else {
+    //          s=s+'<td >'+FloatToStr(Zakaz)+'</td>';   // заказ
+          }
+   for (j=0; j<TStream.StoragesCount; j++) {
+      if (TStream.Storages[j].IsReserve) {
+       s=s+'<td class="col with-border" ><input autocomplete="off" oldvalue_="'+TStream.arrtable[i].StoragesData[j][j].CurValue+'" id="'+TStream.arrtable[i].CurWareCode+'_'+TStream.Storages[j].Code+'"'+
+       ' size="3" maxlength="5" title="Текущее количество заказа '+TStream.arrtable[i].StoragesData[j][j].FromStorages+'" value="'+TStream.arrtable[i].StoragesData[j][j].CurValue+'" '+
+       'style="'+TStream.arrtable[i].StoragesData[j][j].Style+'" onkeyup="inputSetColor(this,'+TStream.arrtable[i].CurWareCode+',event.keyCode);" '+
+       'onChange="if (this.value>0) { elNew(this);} else { jqswMessageError(\'Количество не может быть отрицательным\');"></td>';
+      }
+      else {
+        s=s+'<td>'+TStream.Storages[j].CurValue+'</td>';
+      }
+   }
+   s=s+'<td class="col with-border">';
+   s=s+'  <span class="quantity-type">'+TStream.arrtable[i].WareQv+'</span>';
+   s=s+'</td>';
+   s=s+'<td class="col cost with-border">';
+   s=s+'  <span class="price">'+TStream.arrtable[i].WarePrice+'</span>';
+   s=s+'</td>';
+   s=s+'<td class="col cost with-border" id="lnsum'+TStream.arrtable[i].CurLine+'"><span class="suminrow">'+TStream.arrtable[i].WarePriceSum+'</span></td>';   // сумма
+   if (TStream.flUber) {
+     if (!TStream.IsUberClient) {
+       if (TStream.CURRENCY !=TStream.ballsName) {
+         s=s+'<td class="col cost with-border ballsinrow" id="lnsumballs'+TStream.arrtable[i].CurLine+'">'+ TStream.arrtable[i].ballCount+'</td>';   // баллы
+       }
+     }
+   }
+   else{
+     if (TStream.CURRENCY !=TStream.ballsName) {
+                s=s+'<td class="col cost with-border ballsinrow" id="lnsumballs'+TStream.arrtable[i].CurLine+'">'+ TStream.arrtable[i].ballCount+'</td>';   // баллы
+     }
+   }
+   s=s+'</tr>';
+ }
+ if (TStream.flUber) {
+   if (TStream.IsUberClient) { $("#totalballs").html(TStream.ballsSum+' '+TStream.ballsName);}
+ }
+ else { 
+   $("#totalballs").html(TStream.ballsSum+' '+TStream.ballsName);
+ }
+ s=s+'      </table>';
+ s=s+'<table class="table table-body" cellspacing=0 id="tablecontent2" >';
+ s=s+'</table>';
+ s=s+'    </div>';
+ s=s+'  </div>';
+ s=s+'</div>';
+
+ var sec=$('section#order');
+ if (sec.length){
+    $(sec).html(''); 
+ }
+ else{
+   sec = document.createElement('section');
+   sec.id='order';
+   sec.className='order unit';
+   var main=document.getElementById("main-content");
+   main.appendChild(sec);
+   $(sec).html(''); 
+ }
+ $(sec).html(s); 
+
+ if  (TStream.STATUS==orstForming) {
+   document.getElementById('addlines').value=TStream.OrderCode; 
+ }
+ var warrantnum=TStream.warantNum; 
+ var warrantdate=TStream.warantDate; 
+ var warrantperson=TStream.warantPerson; 
+ var ordercomment=TStream.Commentary; 
+ 
+ $("#sumcommentdiv").text(TStream.ComentSum);
+
+ if (TStream.LineQty>0) {
+   //$("#order-body div").css("display","block");
+  synqcols(document.getElementById('tablecontent2'), document.getElementById('order-table-header'), document.getElementById('order-table-body'), $("#order-table-body").width(), false); 
+ }
+ else {
+   $("#order-body div.table-header-wrap").css("display","none"); 
+   $("#order-body div.order-table-body-wrap").css("display","none"); 
+   var div=document.createElement('div');
+   div.className='no-wares-div';
+   sec.appendChild(div);
+   s='    Для внесения товара в заказ сначала воспользуйтесь поиском, а затем нажмите на кнопку'+
+            '<a class="btn to-order" href="#" > '+
+            '  <span class="product-status green"></span>'+
+            '  <span class="product-order">Заказать</span>'+
+            ' </a>'+
+            'возле нужного наименования.';  // order-body'
+    $(div).html(s);
+
+  }
+  setOrderClientInfoSpanWidth();
+  if (TStream.ExcelFileNameSRC !='') {
+    $("#downloadframe")[0].src=TStream.ExcelFileNameSRC;
+  }
+   
+  
+
+}
+
+
+
+
+
 
 function addtochangeTT(act, num) {  //добавляет, удаляет торговые точки
   var s=res='';
