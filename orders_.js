@@ -3686,6 +3686,7 @@ function setActiveIcon(elem){
  $(".navigation-list.left li a").removeClass('active');
  $(".navigation-list.right li a").removeClass('active');
  $(".navigation-list."+elem).addClass('active');
+ console.log(elem);
 }
 
 function sendchangesdataorder() {
@@ -5438,7 +5439,7 @@ function New_getOrderListPage(){
   s=s+'      <div class="col-xs-5">';
   s=s+'        <ul class="order-list-btn">';
   if (TStream.STATUS==orstForming) {
-    s=s+'          <li><a href="#" onclick="ec(\'refreshprices\', \'order='+TStream.OrderCode+'\',\'abj\');" class="update" title="Обновить цены в заказах"></a></li>';
+    s=s+'          <li><a href="#" onclick="ec(\'refreshprices\', \'order='+TStream.OrderCode+'\',\'newbj\');" class="update" title="Обновить цены в заказах"></a></li>';
     s=s+'          <li><a href="#" class="merge" onclick="ec(\'fillheaderbeforeprocessing\', \'ordr='+TStream.OrderCode+'\',\'abj\'" title="Отправить заказ на обработку"></a></li>';
   }
   else {
@@ -5448,7 +5449,7 @@ function New_getOrderListPage(){
     //s=s+'          <li><a href="#" onclick="window.open('''+Request.ScriptName+'/ac?order='+OrderCode+'&contract='+(IntToStr(ContractID))+''" class="money" title="Показать заказ в '+fnIfStr(acctype='0', 'гривне', 'евро')+'"></a></li>
   }
   else {
-    s=s+'          <li><a href="#" onclick=\'window.open("'+scriptname+'/ac?order='+TStream.OrderCode+'&contract='+TStream.ContractID+'");\' class="money" title="Показать заказ в '+fnIfStr(TStream.acctype=='0', 'гривне', 'евро')+'"></a></li>';
+    s=s+'          <li><a href="#" onclick=\'window.open("'+scriptname+'/universal?act=ac&order='+TStream.OrderCode+'&contract='+TStream.ContractID+'");\' class="money" title="Показать заказ в '+fnIfStr(TStream.acctype=='0', 'гривне', 'евро')+'"></a></li>';
   }
   if (TStream.STATUS==orstForming) {
     s=s+'          <li><a href="#" onclick="del_order();" class="del" title="Удалить"></a></li>'; 
@@ -5462,7 +5463,7 @@ function New_getOrderListPage(){
   s=s+'        </p>';
   s=s+'        <p class="order-info">';
   s=s+'          <span class="title">Статус:</span>';
-  s=s+'          <span class="data">'+TStream.StatusName+'</span>';
+  s=s+'          <span class="data">'+TStream.STATUSNAME+'</span>';
   s=s+'        </p>';
   s=s+'        <p class="order-info">';
   s=s+'          <span class="title">Заказ создал:</span>';
@@ -5490,7 +5491,7 @@ function New_getOrderListPage(){
  else {
    s=s+'      <p class="client-info contract hide">';
  }
- s+'          <span class="title">Контракт №</span>';
+ s=s+'          <span class="title">Контракт №</span>';
  s=s+'          <span class="data">'+TStream.ContractName+'</span>';
  s=s+'        </p>';
  s=s+'      </div>';
@@ -5500,7 +5501,7 @@ function New_getOrderListPage(){
    s=s+'          <span id="orderdeliverydata" onclick=\'ec("fillheaderbeforeprocessing", "ordr='+TStream.OrderCode+'","abj"); \' >'+TStream.deliveryStr+'</span>';
  }
  else {
-   s=s+'          <span id="orderdeliverydata" onclick=\' ec("fillallparametrsorderdopdata", "ordercode='+TStream.OrderCode+'","newbj"); return false;\' >'+TStream.deliveryStr+'</span>';
+   s=s+'          <span id="orderdeliverydata" onclick=\' ec("fillallparametrsorderdopdata", "ordercode='+TStream.OrderCode+'","abj"); return false;\' >'+TStream.deliveryStr+'</span>';
  }
  if (flMeetPerson) {
    s=s+'        <p class="client-info meet-person">';
@@ -5680,14 +5681,78 @@ function New_getOrderListPage(){
   if (TStream.ExcelFileNameSRC !='') {
     $("#downloadframe")[0].src=TStream.ExcelFileNameSRC;
   }
-   
-  
-
 }
 
+function New_getAcListPage(){
+  s='';
+  s=s+'<div class="order-container">';
+  s=s+'  <div class="order-header">';
+  s=s+'    <div class="header-title row">';
+  s=s+'      <div class="col-xs-5">';
+  s=s+'      </div>';
+  s=s+'      <div class="col-xs-7">';
+  s=s+'        <p class="order-info">';
+  s=s+'          <span class="title">Заказ № </span>';
+  s=s+'          <span class="data">'+TStream.ORDRNUM+' от '+TStream.ORDRDATE+'</span>';
+  s=s+'          <span class="title">Статус:</span>';
+  s=s+'          <span class="data">'+TStream.STATUSNAME+'</span>';
+  if (flMeetPerson) {
+    s=s+'          <span class="title">Встречающий:</span>';
+    s=s+'          <span class="data">'+TStream.AccMeetText+'</span>';
+  }
+  s=s+'        </p>';
+  s=s+'      </div>';
+  s=s+'    </div>';
+  s=s+'  </div>';
+  s=s+'   <div class="order-body" id="order-in-uah-body">';
+  s=s+'     <div class="table-header-wrap">';
+  s=s+'       <table class="table table-header" id="order-in-uah-header">'
+  s=s+'         <tr>';
+  s=s+'           <th class="col" title="Наименование товара">Наименование</th>';
+  s=s+'           <th class="col" title="Количество товара в заказе">Кол-во</th>';
+  s=s+'           <th class="col" title="Единица измерения товара">Ед.</th>';
+  s=s+'           <th class="col" title="Входная цена">Цена, '+TStream.CURRENCY+'</th>';
+  s=s+'           <th class="col" title="Общая сумма заказа" id="sumcell" style="font-weight: bold; ">'+TStream.ORDRSUM+' '+TStream.CURRENCY+'</th>';
+  s=s+'           <th></th>';
+  s=s+'         </tr>';
+  s=s+'       </table>';
+  s=s+'     </div>';
+  s=s+'     <div class="order-table-body-wrap" id="order-in-uah-table-body-wrap" data-mcs-theme="inset-dark">';
+  s=s+'       <table class="table table-body" id="order-in-uah-table-body">';
+  for (i=0; i<TStream.LineQty; i++) {
+    s=s+'<tr id="line'+TStream.arrtable[i].CurLine+'" class="order-in-uah-tr'+fnIfStr((i%2)==0,'', ' current')+'">';    //??
+    s=s+'<td class="col with-border" id=td'+TStream.arrtable[i].CurWareCode+' >';
+    s=s+'<span title="'+TStream.arrtable[i].Brand+'">'+TStream.arrtable[i].WareName+'</span>';   // наименование товара
+    s=s+'</td>';
+    s=s+'<td class="col with-border">'+TStream.arrtable[i].Zakaz+'</td>';   // заказ
+    s=s+'<td class="col with-border">'+TStream.arrtable[i].WareQv+'</td>';   // ед.изм
+    s=s+'<td class="col with-border">'+TStream.arrtable[i].WarePrice+'</td>';   // цена
+    s=s+'<td class="col" id="lnsum'+TStream.arrtable[i].CurLine+'">'+TStream.arrtable[i].WarePriceSum+'</td>';   // сумма
+    s=s+'</tr>';
+  }
+  s=s+'       </table>'
+  s=s+'     </div>'
+  s=s+'   </div>'
+  s=s+'</div>'
 
 
 
+ var sec=$('section#order-in-uah');
+ if (sec.length){
+    $(sec).html(''); 
+ }
+ else{
+   sec = document.createElement('section');
+   sec.id='order-in-uah';
+   sec.className='order unit';
+   var main=document.getElementById("main-content");
+   main.appendChild(sec);
+   $(sec).html(''); 
+ }
+ $(sec).html(s); 
+ synqcolsNew(document.getElementById("order-in-uah-header"),document.getElementById("order-in-uah-table-body"),12,17);
+
+}
 
 
 function addtochangeTT(act, num) {  //добавляет, удаляет торговые точки
@@ -5938,4 +6003,11 @@ function editrowfromchangeTTtable(id,elem){
     });
   }
 }
+
+function arrObject(){
+  [{fullName : {surname : 'xxx', firstName : 'yyy', middleName: 'zzz'}}, {fullName : {surname : 'XXX', firstName : 'YYY', middleName: 'ZZZ'}}]
+} 
+
+
+
 
