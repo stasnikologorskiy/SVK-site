@@ -1138,6 +1138,7 @@ function jqswfillInfo(text,title,top,min_height,width,left,border,mode) { //пр
   var left=parseInt(100*(1-($("#info-tree-container").width()/document.documentElement.clientWidth))/2);
   $("#info-tree-container").css("left",left+"%");
   $("#info-tree-body").css("overflow","hidden");
+  $("#info-tree-container").css("min-width","600px");
 }
 
 
@@ -1305,7 +1306,6 @@ function fillDelivetyField(){//заполняет поля для списка �
 function clickDeliveryRadioButton (){
   var v=$("#fillheaderbeforeprocessingdiv input[name^='typeofgetting']:checked").val();
   checkWareOnStorage();
-  //console.log(v);
   if (v==0) {
     $("#fillheaderbeforeprocessingdiv div[name^='datetimediv']").css('display', 'block');
     $("#pickuptimespan").css('display', 'none');
@@ -1474,22 +1474,43 @@ function fillFormOrders(){//заполняет все  поля формы за�
 //alert();
  if ( $("#gift").length){
    var OrderCode=$("#gift").attr("_ordr");
-    ec("fillparametrsallorder","ordercode="+OrderCode,fnIfStr(flNewModeCGI,"newbj","abj"));
+    ec("fillparametrsallorder","ordercode="+OrderCode,"abj");
    //alert('1');
  }
  else if ($("#invoicenum").length){
     var OrderCode=$("#invoicecode").val();
     var forfirmid=$("#forfirmid").val();  
     //alert(forfirmid);
-    ec("fillparametrsallorder","accid="+OrderCode+"&forfirmid="+forfirmid,fnIfStr(flNewModeCGI,"newbj","abj"));
+    ec("fillparametrsallorder","accid="+OrderCode+"&forfirmid="+forfirmid,"abj");
    } 
    else{
      var OrderCode=document.getElementById('addlines').value;
      //alert('3');
-     ec("fillparametrsallorder","ordercode="+OrderCode,fnIfStr(flNewModeCGI,"newbj","abj"));
+     ec("fillparametrsallorder","ordercode="+OrderCode,"abj");
    }
 
 }//fillFormOrders
+
+function fillFormOrdersNew(){//заполняет все  поля формы заказа при ее открытии
+//alert();
+ if ( $("#gift").length){
+   var OrderCode=$("#gift").attr("_ordr");
+    ec("fillparametrsallorder","ordercode="+OrderCode,"newbj");
+   //alert('1');
+ }
+ else if ($("#invoicenum").length){
+    var OrderCode=$("#invoicecode").val();
+    var forfirmid=$("#forfirmid").val();  
+    //alert(forfirmid);
+    ec("fillparametrsallorder","accid="+OrderCode+"&forfirmid="+forfirmid,"newbj");
+   } 
+   else{
+     var OrderCode=document.getElementById('addlines').value;
+     //alert('3');
+     ec("fillparametrsallorder","ordercode="+OrderCode,"newbj");
+   }
+
+}
 
 function jqswConfirmOrder(text) { //для замены окна подтверждения , в частности заказа
   $('#jqdialog').html('<div style="align: center; vertical-align: center; margin: 10px;">'+text+'</div>');

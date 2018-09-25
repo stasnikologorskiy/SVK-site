@@ -34,8 +34,9 @@ var bjauthdivDialogId=0;
 var arrPodborMotul = [];  //массив  объектов для мотуль подбора
 var TStream={};// аналог стрима для обработки в функциях
 var TStream_={};// аналог стрима для обработки в функциях
-
-
+var arrScanFiles=[];// аналог стрима для обработки в функциях
+var flScanDocs=false;
+var flRegScans=false;
 
 function ecfull(command, data, action, type, asynq, question) {
   if ((!question) || confirm(question)) {
@@ -784,6 +785,29 @@ function del_order() {
  }
 }
 
+// отправляет команду удаления отмеченных позиций в заказе конкретном
+function del_orderNew() {
+ if (document.getElementById("addlines")) {
+   var elems=$("#order-table-body input[type='checkbox']:checked");
+   if (elems.length>0){
+    jConfirm('Вы действительно хотите удалить отмеченные товары?', 'Да','Нет',function get(res){
+       if (res){  
+         var s='';
+         elems.each(function(i,elem) { 
+           s+=this.name.substring(2, 100)+',';
+         }); 
+         ec('dlRedisign', 'line='+s+'&ordr='+document.getElementById("addlines").value,'newbj');  
+       }
+    });
+   }
+   else{
+    jqswMessageError('Не выбран ни один товар');
+   }
+  //console.log('line='+s+'&ordr='+document.getElementById("addlines").value);
+ }
+}
+
+
 // отправляет команду обновления цен в неотправленных заказах
 // rpio - RefreshPriceInOrders
 function rpio() {
@@ -1298,38 +1322,101 @@ function delrowfromchangedataordertable(a) {
 }
 
 
-function sendorderfornewcontactadd(form) {
-  //var form;
+function sendorderfornewcontactadd(_user_code) {
+  var form=$("#popup-calendar-body form");
   var el;
-  console.log('привет');
- // form=$('#popup-newcontactpersonorder form')[0];
+  var form_mode=$("#form-personal-data-mode").val();
+  if ( ((form_mode==1) && (flScanDocs)) || (!flScanDocs)){
+    el=form.find('input[name^="fio"]')[0];
+    el.value=mtrim(el.value);
+    if (!el.value) {
+      jqswMessageError("Вы не указали ФИО сотрудника");
+      el.focus();
+      return false;
+    }
 
-  el=$(form).find('input[name^="fio"]')[0];
-  el.value=mtrim(el.value);
-  if (!el.value) {
-    jqswMessageError("Вы не указали ФИО сотрудника");
-    el.focus();
-    return false;
+    el=form.find('input[name^="post"]')[0];
+    el.value=mtrim(el.value);
+    /*if (!el.value) {
+      alert("Вы не указали должность сотрудника");
+      el.focus();
+      return false;
+    }*/
+  
+    el=form.find('textarea[name^="email"]')[0];
+    el.value=mtrim(el.value);
+    if (!el.value) {
+      jqswMessageError("Вы не указали email сотрудника");
+      el.focus();
+      return false;
+    }
   }
 
-  el=$(form).find('input[name^="post"]')[0];
-  el.value=mtrim(el.value);
-  /*if (!el.value) {
-    alert("Вы не указали должность сотрудника");
-    el.focus();
-    return false;
-  }*/
-  
-  el=$(form).find('textarea[name^="email"]')[0];
-  el.value=mtrim(el.value);
-  if (!el.value) {
-    jqswMessageError("Вы не указали email сотрудника");
-    el.focus();
-    return false;
+  var data=$(form).serialize();
+  if (flScanDocs){
+    var FileInps=$(form).find('input[type="file"]');
+    var j=0;
+    var letterdata='';
+    var filedata=[];
+    FileInps.each(function (i) {
+      if ((this.value !='') && (this.className.indexOf('disabled')<1) ){  
+        if (j==0){
+          letterdata+='Скан-копии документов'+',';
+        }  
+        if (this.id=='inn-page'){
+          letterdata+='ИНН - '+removeEnterSymFromStr($(this).prev().text())+','; 
+        }
+        if (this.id=='first-page'){
+          letterdata+='Первый разворот - '+removeEnterSymFromStr($(this).prev().text())+',';
+        }  
+        if (this.id=='second-page'){
+          letterdata+='Второй разворот - '+removeEnterSymFromStr($(this).prev().text())+',';
+        }  
+        if ((this.id=='third-file') && ($("#scan-old-pasport").prop("checked"))){
+          letterdata+='Третий разворот, при наличии второго фото - '+removeEnterSymFromStr($(this).prev().text())+',';
+        }  
+        if ((this.id=='adress-page') && ($("#scan-old-pasport").prop("checked"))){
+          letterdata+='Прописка - '+removeEnterSymFromStr($(this).prev().text())+',';
+        }
+        j++;
+      }  
+    });
+    if (j>0){
+      var DocType='Паспорт';
+      if ($("#scan-id-pasport").prop("checked")){
+        DocType='ID-карта';   
+      }  
+      letterdata='&filenamelist=Тип документа - '+DocType+','+letterdata.substr(0,letterdata.length-1);
+      console.log(letterdata);
+      data+=letterdata+'&filescount='+j;
+      var isCheckIDPas=$("#scan-id-pasport").prop("checked");
+      for (i=0; i<arrScanFiles.length; i++) { 
+        if (isCheckIDPas){
+          if ((arrScanFiles[i].keycode!='third-file') && (arrScanFiles[i].keycode!='adress-page')) { 
+           data+='&file'+(i+1)+'_name='+arrScanFiles[i].name+'&file'+(i+1)+'_data='+arrScanFiles[i].content;
+         }  
+        }
+        else{  
+          data+='&file'+(i+1)+'_name='+arrScanFiles[i].name+'&file'+(i+1)+'_data='+arrScanFiles[i].content;
+        }  
+      }
+      startLoadingAnimation();
+      $.ajax({
+        url: ((form.action)?form.action:scriptname+"/abj"),
+        type: "post",
+        //processData: false,
+        //contentType: false,
+        data:data,
+        complete: function(obj, stat) {
+        stopLoadingAnimation();
+        },
+        dataType: "script"
+      });
+    }
+    else{
+      jqswMessageError('Нет прикрепленных файлов');
+    }
   }
-  
-  return sfba(form);
-  
 }
 
 // отправляет команду создания нового заказа по отмеченным
@@ -3415,7 +3502,7 @@ function showhiderate2(margintable,DivWidth) { // функция для пока
        $(div2).css('left',curLeftLine-16+'px').css('bottom',curHeightLine+'px');
      }
     
-    left_block_expand=(getCookie1('left_block_expand').indexOf(0)==0)?0:1;
+    //left_block_expand=(getCookie1('left_block_expand').indexOf(0)==0)?0:1;
     checkColection.showrate=1;
  }   
 }
@@ -3658,7 +3745,7 @@ function omf() {
             }  
           } 
       
-    s=s+'Ваше сообщение будет отправлено от имени <b>'+$(".user-name").text()
+    s=s+'Ваше сообщение будет отправлено от имени <b>'+$("p.user-name").text()
       +'</b>. Ответ будет направлен на Ваш email <b>'+usermail
       +'</b>.Если эта информация не является корректной, отправьте заявку на изменение данных либо обратитесь В Службу Поддержки';
     s=s+'<textarea class="login-input" id="messagetext" name=messagetext >'+s1+'</textarea>';
@@ -3686,7 +3773,6 @@ function setActiveIcon(elem){
  $(".navigation-list.left li a").removeClass('active');
  $(".navigation-list.right li a").removeClass('active');
  $(".navigation-list."+elem).addClass('active');
- console.log(elem);
 }
 
 function sendchangesdataorder() {
@@ -3718,7 +3804,7 @@ function sendchangesdataorder() {
 }
 
 function check_reg_form_Uber(form) {
-      if (document.getElementById('client-uber2').checked){
+     if (document.getElementById('client-uber2').checked){
         el=document.getElementById('firm');
         el.value=mtrim(el.value);
 	      if (!el.value) {
@@ -3818,8 +3904,8 @@ function check_reg_form_Uber(form) {
              }, 300);
       	  	 return false;
       	  }
-      }
-      if (document.getElementById('client-uber1').checked){
+     }
+     if (document.getElementById('client-uber1').checked){
         el=document.getElementById('number-card-uber');
         el.value=mtrim(el.value);
 	      if (!el.value) {
@@ -3873,8 +3959,41 @@ function check_reg_form_Uber(form) {
            }, 300);
 	      	 return false;
 	      }
+     }
+     if (flRegScans){
+       var form=document.getElementById("registrform");     
+       var data=$(form).serialize(); 
+       var FileInps=$(form).find('input[type="file"]');
+       var j=0;
+       FileInps.each(function (i) {
+         if ((this.value !='') && (this.className.indexOf('disabled')<1) ){  
+           j++;
+         }  
+       });
+       if (j>0){
+         data+='&filescount='+j;   
+         for (i=0; i<arrScanFiles.length; i++) { 
+           data+='&file'+(i+1)+'_name='+arrScanFiles[i].name+'&file'+(i+1)+'_data='+arrScanFiles[i].content;
+         }  
+         startLoadingAnimation();
+         form=$("#registrform");   
+         $.ajax({
+          url: ((form.action)?form.action:scriptname+"/nabj"),
+          type: "post",
+          data:data,
+          complete: function(obj, stat) {
+          stopLoadingAnimation();
+          },
+          dataType: "script"
+        });
       }
-	sfba($("#registrform"), 'nabj');
+      else{
+        jqswMessageError('Нет прикрепленных файлов сканов');
+      }
+    }
+    else{
+	  sfba($("#registrform"), 'nabj');
+    }
 }
 
 function check_reg_form(form) {
@@ -3988,7 +4107,11 @@ function dwsth_(CurName) {
 // сохраняет значение текущей сортировки и перезагружает страницу
 function set_sort(nam, val) {
   setCookie_(nam, val, getExpDate_(360,0,0),'/',0,0);
-  location.replace(location.href);
+  var s=location.href;
+  if (s.indexOf('#')>0){
+    s=s.substr(0,s.indexOf('#'));
+  }
+  location.replace(s);
 }
 
 function call_linefromsearchtoorder(WareCode,Waredivis,ContractId){ //добавляет товар в заказ из рез. поиска и из результатов сравнения
@@ -4252,14 +4375,17 @@ function setKindOfPriceMotul(){
 
 
 function checkListWaresForFind(){
-  var MaxSpanTitleWidth=$("#search-table td.col-discription span").width();
-  var RealSpanTitleWidth=$("#search-table").width()-565-$("#search-table td.col-companis-logo").width();
+  var MaxSpanTitleWidth=$("#search-table td.col-discription").width();
+  //var RealSpanTitleWidth=$("#search-table").width()-565-$("#search-table td.col-companis-logo").width();
+  //var RealSpanTitleWidth=$("div.search-header-table").width()-20-565-$("#search-table td.col-companis-logo").width();
+  var RealSpanTitleWidth=$("div.search-header-table").width()-20-565-110;
   //console.log(MaxSpanTitleWidth);
   //console.log(RealSpanTitleWidth);
+  //console.log($("div.search-header-table").width());
   if (MaxSpanTitleWidth>RealSpanTitleWidth){
-    $("#search-table td.col-discription span.title").css("width",RealSpanTitleWidth+"px");
-    $("#search-table td.col-discription").css("width",RealSpanTitleWidth+50+"px");
-    $("#search-table td.col-discription").css("width",RealSpanTitleWidth+50+"px");
+    $("#search-table td.col-discription span.title").css("width",RealSpanTitleWidth-20+"px");
+    $("#search-table td.col-discription").css("width",RealSpanTitleWidth+"px");
+    $("#search-table td.col-discription p.discription").css("width",RealSpanTitleWidth+"px");
   }
   $("#search-table td.col-discription p.discription").css("max-width",RealSpanTitleWidth-30+"px");
 }
@@ -4877,8 +5003,9 @@ function cleanPodborMotulTitle(elem){
  }
 }
 
-function addOptionsPageNewUser(user_code,user_login,user_position){
+function addOptionsPageNewUser(user_code,user_login,user_position,inn,pasport,scan_icon){
   var tbl=$("div#optionusersdiv table.mono");
+    
   if (tbl.length){
     var s1='';
     var contract;
@@ -4887,7 +5014,12 @@ function addOptionsPageNewUser(user_code,user_login,user_position){
     s1+='  <td>'+fio+'</td>';
     s1+='  <td>'+user_position+'</td>';
     s1+='  <td id="login'+user_code+'">'+user_login+'</td>';
-    ContractCount=tbl.find('tr:nth-child(2) td').length-6;
+    if (flScanDocs){
+      ContractCount=tbl.find('tr:nth-child(1) th').length+2-9;   
+    }
+    else{
+      ContractCount=tbl.find('tr:nth-child(1) th').length+2-6;
+    }
     for (i=0; i<ContractCount; i++) { 
       ContractCode=tbl.find("th:nth-child("+i+4+")").attr("code");
       s1+='<td class="center">'+
@@ -4912,7 +5044,21 @@ function addOptionsPageNewUser(user_code,user_login,user_position){
         'onclick="jqswConfirmFromOrder(\'Вы действительно хотите отправить заявку на удаление пользователя '+fio+'?\', \'act=fndeluserstatement&usercode='+user_code+'\');">'+
         'Удалить</button>'+
         '</td>';
-   
+    if (flScanDocs){
+      s1+='<td>'+inn+'</td>'+
+        '  <td>'+pasport+'</td> ';
+      var i=$("div#optionusersdiv table.mono tr").length; 
+      var temp='';    
+      switch (scan_icon) {
+        case 2: temp='<a class="users-icon-scan all" user="'+user_code+'" id="icon-scan-'+i+'" href="#" onclick="getPersonalDataClaimWindowShort(this.id);"></a>';
+          break
+        case 1: temp='<a class="users-icon-scan any" user="'+user_code+'" id="icon-scan-'+i+'" href="#" onclick="getPersonalDataClaimWindowShort(this.id);"></a>';
+          break      
+        case 0: temp='<a class="users-icon-scan no" user="'+user_code+'" id="icon-scan-'+i+'" href="#" onclick="getPersonalDataClaimWindowShort(this.id);"></a>';
+          break
+      }
+      s1=s1+'    <td>'+temp+'</td>';
+    }   
     s1+='</tr>';
     tbl.append(s1); 
     $("#newlogin").val('');
@@ -5014,9 +5160,7 @@ function New_getContractListWindow(){
   s=s+'        <td class="col">Склад</td>';
   s=s+'        <td class="col">Сумма кредита</td>';
   s=s+'        <td class="col">Отсрочка, дн.</td>';
-  if (flCredProfile) {
-    s=s+'           <td class="col" >Общий долг</td>';
-  }  
+  s=s+'           <td class="col" >Общий долг</td>';
   s=s+'        <td class="col">Долг/перепл.</td>';
   s=s+'        <td class="col">Резерв</td>';
   s=s+'        <td class="col">Статус</td>';
@@ -5029,74 +5173,40 @@ function New_getContractListWindow(){
   s=s+' <div class="order-table-body-wrap" id="contract-choice-body-wrap" data-mcs-theme="inset-dark"> ';
   s=s+'   <table class="table table-body" id="contract-choice-table-body"> ';
   if (TStream.arrtable.length>0){
-    if (flCredProfile){
-      for (i=0; i<TStream.BlockCount; i++) {
-        for (j=0; j<TStream.arrtable[i].Count;j++){
-          if (edit !=''){
-            s=s+'<tr code="'+TStream.arrtable[i].RowData[j].CurrentContractCode+'">'
-          }
-          else{
-            s=s+'<tr code='+TStream.arrtable[i].RowData[j].CurrentContractCode+fnIfStr(TStream.ContractId==TStream.arrtable[i].RowData[j].CurrentContractCode, ' class="contract-choice-tr current"', ' class="pointer"')+'>';
-          } 
-          s=s+'<td class="col with-border">'+TStream.arrtable[i].RowData[j].CurrentContractNum+'</td>';
-          s=s+'<td class="col with-border">'+TStream.arrtable[i].RowData[j].PayForm+'</td>';
-          s=s+'<td class="col with-border" title="'+TStream.arrtable[i].RowData[j].deprtName+'">'+TStream.arrtable[i].RowData[j].deprtShortName+'</td>';
-          if (TStream.arrtable[i].RowData[j].deprtShortName !=''){
-            if (j==0) {
-              s=s+'<td rowspan="'+TStream.arrtable[i].Count+'" class="col with-border united-cell-contracts">'+TStream.arrtable[i].RowData[j].CreditContractSum;
-              s=s+' '+TStream.arrtable[i].RowData[j].CurrencyContractName+'</td>';
-              s=s+'<td rowspan="'+TStream.arrtable[i].Count+'" class="col with-border united-cell-contracts">'+TStream.arrtable[i].RowData[j].ReprieveContract+'</td>';
-              s=s+'<td rowspan="'+TStream.arrtable[i].Count+'" class="col with-border united-cell-contracts">'+TStream.arrtable[i].RowData[j].ProfDebtAll+'</td>';
-            }
-            s=s+'<td class="col with-border">'+TStream.arrtable[i].RowData[j].DebtContract+'</td>';
-          }
-          else {
-            if (j==0) {
-              s=s+'<td rowspan="'+TStream.arrtable[i].Count+'" class="col with-border united-cell-contracts"></td>';
-              s=s+'<td rowspan="'+TStream.arrtable[i].Count+'" class="col with-border united-cell-contracts"></td>';
-              s=s+'<td rowspan="'+TStream.arrtable[i].Count+'" class="col with-border united-cell-contracts"></td>';
-            }
-            s=s+'<td class="col with-border">'+TStream.arrtable[i].RowData[j].DebtContract+'</td>';
-          }
-          s=s+'<td class="col with-border">'+TStream.arrtable[i].RowData[j].ContractOrderSum+'</td>';   //резерв
-          s=s+'<td class="col with-border" style="padding: 0 10px 0 10px; background-color: '+TStream.arrtable[i].RowData[j].BKColor+'; color: '+TStream.arrtable[i].RowData[j].Color+'; text-align: center; font-weight: bold;" title="'+TStream.arrtable[i].RowData[j].stemp+'">'+TStream.arrtable[i].RowData[j].ContStatusNames+'</td>';
-          s=s+'<td class="col with-border" style="color: red;font-weight: bold;">'+TStream.arrtable[i].RowData[j].ContractRedSum+'</td>';
-          s=s+'<td class="col with-border" style="color: #f0f;font-weight: bold;">'+TStream.arrtable[i].RowData[j].ContractVioletSum+'</td>';
-          s=s+'<td class="col with-border">'+TStream.arrtable[i].RowData[j].FirmName+'</td>';
-          s=s+'<td class="col"><span class="contractcommentspan" title="'+TStream.arrtable[i].RowData[j].SelfCommentary+'">'+TStream.arrtable[i].RowData[j].temp+'</span></td>';
-          s=s+'</tr>';
-        }
-      }
-    }
-    else{
-      for (i=0; i<TStream.arlen; i++) {
+    for (i=0; i<TStream.BlockCount; i++) {
+      for (j=0; j<TStream.arrtable[i].Count;j++){
         if (edit !=''){
-          s=s+'<tr code="'+TStream.arrtable[i].CurrentContractCode+'">'
+          s=s+'<tr code="'+TStream.arrtable[i].RowData[j].CurrentContractCode+'">'
         }
         else{
-          s=s+'<tr code='+TStream.arrtable[i].CurrentContractCode+fnIfStr(TStream.ContractId==TStream.arrtable[i].CurrentContractCode, ' class="contract-choice-tr current"', ' class="pointer"')+'>';
+          s=s+'<tr code='+TStream.arrtable[i].RowData[j].CurrentContractCode+fnIfStr(TStream.ContractId==TStream.arrtable[i].RowData[j].CurrentContractCode, ' class="contract-choice-tr current"', ' class="pointer"')+'>';
         } 
-        s=s+'<td class="col with-border">'+TStream.arrtable[i].CurrentContractNum+'</td>';
-        s=s+'<td class="col with-border">'+TStream.arrtable[i].PayForm+'</td>';
-        s=s+'<td class="col with-border" title="'+TStream.arrtable[i].deprtName+'">'+TStream.arrtable[i].deprtShortName+'</td>';
-         if (TStream.arrtable[i].deprtShortName !=''){
-          s=s+'<td class="col with-border">'+TStream.arrtable[i].CreditContractSum;
-          s=s+' '+TStream.arrtable[i].CurrencyContractName+'</td>';
-          s=s+'<td class="col with-border">'+TStream.arrtable[i].ReprieveContract+'</td>';
-          s=s+'<td class="col with-border">'+TStream.arrtable[i].DebtContract+'</td>';
-         }
-        else {
-          s=s+'<td class="col with-border"></td>';
-          s=s+'<td class="col with-border"></td>';
-          s=s+'<td class="col with-border">'+TStream.arrtable[i].DebtContract+'</td>';
+        s=s+'<td class="col with-border">'+TStream.arrtable[i].RowData[j].CurrentContractNum+'</td>';
+        s=s+'<td class="col with-border">'+TStream.arrtable[i].RowData[j].PayForm+'</td>';
+        s=s+'<td class="col with-border" title="'+TStream.arrtable[i].RowData[j].deprtName+'">'+TStream.arrtable[i].RowData[j].deprtShortName+'</td>';
+        if (TStream.arrtable[i].RowData[j].deprtShortName !=''){
+          if (j==0) {
+            s=s+'<td rowspan="'+TStream.arrtable[i].Count+'" class="col with-border united-cell-contracts">'+TStream.arrtable[i].RowData[j].CreditContractSum;
+            s=s+' '+TStream.arrtable[i].RowData[j].CurrencyContractName+'</td>';
+            s=s+'<td rowspan="'+TStream.arrtable[i].Count+'" class="col with-border united-cell-contracts">'+TStream.arrtable[i].RowData[j].ReprieveContract+'</td>';
+            s=s+'<td rowspan="'+TStream.arrtable[i].Count+'" class="col with-border united-cell-contracts">'+TStream.arrtable[i].RowData[j].ProfDebtAll+'</td>';
+          }
+          s=s+'<td class="col with-border">'+TStream.arrtable[i].RowData[j].DebtContract+'</td>';
         }
-        s=s+'<td class="col with-border">'+TStream.arrtable[i].ContractOrderSum+'</td>';   //резерв
-        s=s+'<td class="col with-border" style="padding: 0 10px 0 10px; background-color: '+TStream.arrtable[i].BKColor+'; color: '+TStream.arrtable[i].Color+'; text-align: center; font-weight: bold;" title="'+TStream.arrtable[i].stemp+'">'+TStream.arrtable[i].ContStatusNames+'</td>';
-        s=s+'<td class="col with-border" style="color: red;font-weight: bold;">'+TStream.arrtable[i].ContractRedSum+'</td>';
-        s=s+'<td class="col with-border" style="color: #f0f;font-weight: bold;">'+TStream.arrtable[i].ContractVioletSum+'</td>';
-
-        s=s+'<td class="col with-border">'+TStream.arrtable[i].FirmName+'</td>';
-        s=s+'<td class="col"><span class="contractcommentspan" title="'+TStream.arrtable[i].SelfCommentary+'">'+TStream.arrtable[i].temp+'</span></td>';
+        else {
+          if (j==0) {
+            s=s+'<td rowspan="'+TStream.arrtable[i].Count+'" class="col with-border united-cell-contracts"></td>';
+            s=s+'<td rowspan="'+TStream.arrtable[i].Count+'" class="col with-border united-cell-contracts"></td>';
+            s=s+'<td rowspan="'+TStream.arrtable[i].Count+'" class="col with-border united-cell-contracts"></td>';
+          }
+          s=s+'<td class="col with-border">'+TStream.arrtable[i].RowData[j].DebtContract+'</td>';
+        }
+        s=s+'<td class="col with-border">'+TStream.arrtable[i].RowData[j].ContractOrderSum+'</td>';   //резерв
+        s=s+'<td class="col with-border" style="padding: 0 10px 0 10px; background-color: '+TStream.arrtable[i].RowData[j].BKColor+'; color: '+TStream.arrtable[i].RowData[j].Color+'; text-align: center; font-weight: bold;" title="'+TStream.arrtable[i].RowData[j].stemp+'">'+TStream.arrtable[i].RowData[j].ContStatusNames+'</td>';
+        s=s+'<td class="col with-border" style="color: red;font-weight: bold;">'+TStream.arrtable[i].RowData[j].ContractRedSum+'</td>';
+        s=s+'<td class="col with-border" style="color: #f0f;font-weight: bold;">'+TStream.arrtable[i].RowData[j].ContractVioletSum+'</td>';
+        s=s+'<td class="col with-border">'+TStream.arrtable[i].RowData[j].FirmName+'</td>';
+        s=s+'<td class="col"><span class="contractcommentspan" title="'+TStream.arrtable[i].RowData[j].SelfCommentary+'">'+TStream.arrtable[i].RowData[j].temp+'</span></td>';
         s=s+'</tr>';
       }
     }
@@ -5132,9 +5242,7 @@ function New_getContractListPage(){
   s=s+'           <td class="col" >Склад отгрузки</td>';
   s=s+'           <td class="col" >Сумма кредита</td>';
   s=s+'           <td class="col" >Отсрочка, дн.</td>';
-  if (flCredProfile) {
-    s=s+'           <td class="col" >Общий долг</td>';
-  }  
+  s=s+'           <td class="col" >Общий долг</td>';
   s=s+'           <td class="col" >Долг/перепл.</td>';
   s=s+'           <td class="col" >Резерв</td>';
   s=s+'           <td class="col" >Статус</td>';
@@ -5146,72 +5254,45 @@ function New_getContractListPage(){
   s=s+'     <div class="order-table-body-wrap" id="contracts-table-body-wrap" data-mcs-theme="inset-dark"> ';
   s=s+'       <table class="table table-body" id="contracts-table-body"> ';
   if (TStream.arrtable.length>0){
-    if (flCredProfile){
-      for (i=0; i<TStream.BlockCount; i++) {
-        for (j=0; j<TStream.arrtable[i].Count;j++){
-          s=s+'<tr code='+TStream.arrtable[i].RowData[j].CurrentContractCode+fnIfStr(TStream.ContractId==TStream.arrtable[i].RowData[j].CurrentContractCode, ' class="contract-tr current"', ' class="contract-tr another"')+'>';
-          s=s+'<td class="col with-border">'+TStream.arrtable[i].RowData[j].CurrentContractNum+'</td>';
-          s=s+'<td class="col with-border">'+TStream.arrtable[i].RowData[j].FirmName+'</td>';
-          s=s+'<td class="col with-border">'+TStream.arrtable[i].RowData[j].PayForm+'</td>';
-          s=s+'<td class="col with-border" title="'+TStream.arrtable[i].RowData[j].deprtName+'">'+TStream.arrtable[i].RowData[j].deprtShortName+'</td>';
-          if (TStream.arrtable[i].RowData[j].deprtShortName !=''){
-            if (j==0) {
-              s=s+'<td rowspan="'+TStream.arrtable[i].Count+'" class="col with-border united-cell-contracts">'+TStream.arrtable[i].RowData[j].CreditContractSum;
-              s=s+' '+TStream.arrtable[i].RowData[j].CurrencyContractName+'</td>';
-              s=s+'<td rowspan="'+TStream.arrtable[i].Count+'" class="col with-border united-cell-contracts">'+TStream.arrtable[i].RowData[j].ReprieveContract+'</td>';
-              s=s+'<td rowspan="'+TStream.arrtable[i].Count+'" class="col with-border united-cell-contracts">'+TStream.arrtable[i].RowData[j].ProfDebtAll+'</td>';
-            }
-            s=s+'<td class="col with-border">'+TStream.arrtable[i].RowData[j].DebtContract+'</td>';
-          }
-          else {
-            if (j==0) {
-              s=s+'<td rowspan="'+TStream.arrtable[i].Count+'" class="col with-border united-cell-contracts"></td>';
-              s=s+'<td rowspan="'+TStream.arrtable[i].Count+'" class="col with-border united-cell-contracts"></td>';
-              s=s+'<td rowspan="'+TStream.arrtable[i].Count+'" class="col with-border united-cell-contracts"></td>';
-            }
-            s=s+'<td class="col with-border">'+TStream.arrtable[i].RowData[j].DebtContract+'</td>';
-          }
-          s=s+'<td class="col with-border">'+TStream.arrtable[i].RowData[j].ContractOrderSum+'</td>';   //резерв
-          s=s+'<td class="col with-border" style="color: '+TStream.arrtable[i].RowData[j].Color+'; text-align: center; " title="'+TStream.arrtable[i].RowData[j].stemp+'">'+TStream.arrtable[i].RowData[j].ContStatusNames+'</td>';
-          s=s+'<td class="col with-border over" >'+TStream.arrtable[i].RowData[j].ContractRedSum+'</td>';
-          s=s+'<td class="col with-border deadline" >'+TStream.arrtable[i].RowData[j].ContractVioletSum+'</td>';
-          s=s+'<td class="col"><span class="contractcommentspan" title="'+TStream.arrtable[i].RowData[j].SelfCommentary+'">'+TStream.arrtable[i].RowData[j].temp+'</span></td>';
-          s=s+'</tr>';
-        }
-      }
-      s=s+'<tr class="contact-tr all"> ';
-      s=s+'  <td colspan="4" class="desr-cell col with-border">Итого:</td> ';
-      s=s+'  <td class="desr-cell col with-border center">'+TStream.SumCreditContract+'</td> ';
-      s=s+'  <td class="col with-border"></td> ';
-      s=s+'  <td  class="desr-cell col with-border center">'+TStream.SumProfDebtAll+'</td> ';
-      s=s+'  <td  colspan="6" class="col"></td> ';
-      s=s+'</tr> ';
-    }
-    else{
-      for (i=0; i<TStream.arlen; i++) {
-        s=s+'<tr code="'+TStream.arrtable[i].CurrentContractCode+'" class="contract-tr '+fnIfStr(ContractId=CurrentContractCode, ' current', 'another')+'" >';
-        s=s+'<td class="col with-border">'+TStream.arrtable[i].CurrentContractNum+'</td>';
+    for (i=0; i<TStream.BlockCount; i++) {
+      for (j=0; j<TStream.arrtable[i].Count;j++){
+        s=s+'<tr code='+TStream.arrtable[i].RowData[j].CurrentContractCode+fnIfStr(TStream.ContractId==TStream.arrtable[i].RowData[j].CurrentContractCode, ' class="contract-tr current"', ' class="contract-tr another"')+'>';
+        s=s+'<td class="col with-border">'+TStream.arrtable[i].RowData[j].CurrentContractNum+'</td>';
         s=s+'<td class="col with-border">'+TStream.arrtable[i].RowData[j].FirmName+'</td>';
-        s=s+'<td class="col with-border">'+TStream.arrtable[i].PayForm+'</td>';
-        s=s+'<td class="col with-border" title="'+TStream.arrtable[i].deprtName+'">'+TStream.arrtable[i].deprtShortName+'</td>';
-         if (TStream.arrtable[i].deprtShortName !=''){
-          s=s+'<td class="col with-border">'+TStream.arrtable[i].CreditContractSum+'</td>';
-          s=s+'<td class="col with-border">'+TStream.arrtable[i].ReprieveContract+'</td>';
-          s=s+'<td class="col with-border">'+TStream.arrtable[i].DebtContract+'</td>';
-         }
-        else {
-          s=s+'<td class="col with-border"></td>';
-          s=s+'<td class="col with-border"></td>';
-          s=s+'<td class="col with-border">'+TStream.arrtable[i].DebtContract+'</td>';
+        s=s+'<td class="col with-border">'+TStream.arrtable[i].RowData[j].PayForm+'</td>';
+        s=s+'<td class="col with-border" title="'+TStream.arrtable[i].RowData[j].deprtName+'">'+TStream.arrtable[i].RowData[j].deprtShortName+'</td>';
+        if (TStream.arrtable[i].RowData[j].deprtShortName !=''){
+          if (j==0) {
+            s=s+'<td rowspan="'+TStream.arrtable[i].Count+'" class="col with-border united-cell-contracts">'+TStream.arrtable[i].RowData[j].CreditContractSum;
+            s=s+' '+TStream.arrtable[i].RowData[j].CurrencyContractName+'</td>';
+            s=s+'<td rowspan="'+TStream.arrtable[i].Count+'" class="col with-border united-cell-contracts">'+TStream.arrtable[i].RowData[j].ReprieveContract+'</td>';
+            s=s+'<td rowspan="'+TStream.arrtable[i].Count+'" class="col with-border united-cell-contracts">'+TStream.arrtable[i].RowData[j].ProfDebtAll+'</td>';
+          }
+          s=s+'<td class="col with-border">'+TStream.arrtable[i].RowData[j].DebtContract+'</td>';
         }
-        s=s+'<td class="col with-border">'+TStream.arrtable[i].ContractOrderSum+'</td>';   //резерв
-        s=s+'<td class="col with-border" style="color: '+TStream.arrtable[i].Color+'; text-align: center; " title="'+TStream.arrtable[i].stemp+'">'+TStream.arrtable[i].ContStatusNames+'</td>';
-        s=s+'<td class="col with-border" style="color: red;font-weight: bold;">'+TStream.arrtable[i].ContractRedSum+'</td>';
-        s=s+'<td class="col with-border" style="color: #f0f;font-weight: bold;">'+TStream.arrtable[i].ContractVioletSum+'</td>';
-        s=s+'<td class="col"><span class="contractcommentspan" title="'+TStream.arrtable[i].SelfCommentary+'">'+TStream.arrtable[i].temp+'</span></td>';
+        else {
+          if (j==0) {
+            s=s+'<td rowspan="'+TStream.arrtable[i].Count+'" class="col with-border united-cell-contracts"></td>';
+            s=s+'<td rowspan="'+TStream.arrtable[i].Count+'" class="col with-border united-cell-contracts"></td>';
+            s=s+'<td rowspan="'+TStream.arrtable[i].Count+'" class="col with-border united-cell-contracts"></td>';
+          }
+          s=s+'<td class="col with-border">'+TStream.arrtable[i].RowData[j].DebtContract+'</td>';
+        }
+        s=s+'<td class="col with-border">'+TStream.arrtable[i].RowData[j].ContractOrderSum+'</td>';   //резерв
+        s=s+'<td class="col with-border" style="color: '+TStream.arrtable[i].RowData[j].Color+'; text-align: center; " title="'+TStream.arrtable[i].RowData[j].stemp+'">'+TStream.arrtable[i].RowData[j].ContStatusNames+'</td>';
+        s=s+'<td class="col with-border over" >'+TStream.arrtable[i].RowData[j].ContractRedSum+'</td>';
+        s=s+'<td class="col with-border deadline" >'+TStream.arrtable[i].RowData[j].ContractVioletSum+'</td>';
+        s=s+'<td class="col"><span class="contractcommentspan" title="'+TStream.arrtable[i].RowData[j].SelfCommentary+'">'+TStream.arrtable[i].RowData[j].temp+'</span></td>';
         s=s+'</tr>';
       }
     }
+    s=s+'<tr class="contact-tr all"> ';
+    s=s+'  <td colspan="4" class="desr-cell col with-border">Итого:</td> ';
+    s=s+'  <td class="desr-cell col with-border center">'+TStream.SumCreditContract+'</td> ';
+    s=s+'  <td class="col with-border"></td> ';
+    s=s+'  <td  class="desr-cell col with-border center">'+TStream.SumProfDebtAll+'</td> ';
+    s=s+'  <td  colspan="6" class="col"></td> ';
+    s=s+'</tr> ';
     s=s+'     </table> ';
     s=s+'     <table class="table table-body" cellspacing=0 id="tablecontent2" ></table>';
     s=s+'   </div> ';
@@ -5261,7 +5342,7 @@ function New_getOrdersListPage(){
   s=s+'         <div class="header-title row">';
   s=s+'           <div class="col-xs-5">';
   s=s+'             <ul class="order-list-btn">';
-  s=s+'               <li><a disable="disable" id="btim_nobc" href="#" onclick=" obmajNew(\'obm\');" class="orders-check" title="Создать новый заказ по отмеченным"></a></li>';
+  s=s+'               <li><a disable="disable" id="btim_nobc" href="#" onclick=" if ($(this).attr(\'disable\')==\'enable\'){ obmajNew(\'obm\'); }" class="orders-check" title="Создать новый заказ по отмеченным"></a></li>';
   s=s+'               <li><a href="#" id="btim_neworder" onclick="cnoNew();" class="orders-add" title="Создать новый заказ"></a></li>';
   s=s+'               <li><a href="#" disable="disable" id="btim_unorders" onclick="if ($(this).attr(\'disable\')==\'enable\'){ obmajNew(\'jm\'); }" class="orders-join" title="Объединить отмеченные заказы"></a></li>' ;
   s=s+'               <li><a href="#" id="btim_filter" onclick="showorderfilter();" class="orders-filter" title="Фильтр заказов"></a></li>';
@@ -5358,39 +5439,42 @@ function New_getOrdersListPage(){
               '<td class="col with-border">&nbsp;</td>'+
               '<td class="col with-border">&nbsp;</td>';
         }
-        for (ii=0; ii<TStream.arrtable[i].RowCount; ii++) {
-          if (ii>0) {
-            s=s+'<tr class="'+fnIfStr((i%2)==0, ' current', '')+'">';
-          }
-          if (TStream.arrtable[i].RowData[ii][ii].b>0) {
-            s=s+'<td class="col with-border" title="">'+TStream.arrtable[i].RowData[ii][ii].OrderType+'</td>'; //Тип документа
-          } else {
-              s=s+'<td class="col with-border">'+TStream.arrtable[i].RowData[ii][ii].OrderType+'</td>'; //Тип документа
-          }
-          s=s+'<td  class="col with-border"><span style="white-space: nowrap;" ><a target="_blank"  '+
-          'onclick="window.open(\''+scriptname+'/showdoc?type='+TStream.arrtable[i].RowData[ii][ii].DocType+'&id='+TStream.arrtable[i].RowData[ii][ii].DocId+'&isorders=true\'); event.stopPropagation(); return false;" href="#" '+
-          'title="Склад документа - '+TStream.arrtable[i].RowData[ii][ii].OrderStore+'">'+TStream.arrtable[i].RowData[ii][ii].DocNum+'</a>';//Номер документа
-          if (TStream.arrtable[i].RowData[ii][ii].Commentary !='') {
-            s=s+'<img style="cursor: pointer;" title="'+TStream.arrtable[i].RowData[ii][ii].Commentary+'" onClick=\'jqswfillInfo("'+TStream.arrtable[i].RowData[ii][ii].Commentary+'","Комментарий",20,150,10); '+
-            'event.stopPropagation(); return false;\' src="/images/orders/com.png">'; //Комментарий
-          }
-          s=s+'</span></td>';
-          s=s+'<td class="col with-border">'+TStream.arrtable[i].RowData[ii][ii].SumDoc+'</td>'; //Сумма док.
-          s=s+'<td class="col with-border">'+TStream.arrtable[i].RowData[ii][ii].CurrencyDoc+'</td>'; //Валюта док.
-          s=s+'<td class="col with-border">'+TStream.arrtable[i].RowData[ii][ii].DateDoc+'</td>'; //Дата  док.
-          if (ii>0) {
+        else {
+          //s=s+'<td>';
+          for (ii=0; ii<TStream.arrtable[i].RowData.length; ii++) {
+            if (ii>0) {
+              s=s+'<tr class="'+fnIfStr((i%2)==0, ' current', '')+'">';
+            }
+            if (TStream.arrtable[i].RowData[ii][0].b>0) {
+              s=s+'<td class="col with-border" title="">'+TStream.arrtable[i].RowData[ii][0].OrderType+'</td>'; //Тип документа
+            } else {
+              s=s+'<td class="col with-border">'+TStream.arrtable[i].RowData[ii][0].OrderType+'</td>'; //Тип документа
+            }
+            s=s+'<td  class="col with-border"><span style="white-space: nowrap;" ><a target="_blank"  '+
+            'onclick="window.open(\''+scriptname+'/showdoc?type='+TStream.arrtable[i].RowData[ii][0].DocType+'&id='+TStream.arrtable[i].RowData[ii][0].DocId+'&isorders=true\'); event.stopPropagation(); return false;" href="#" '+
+            'title="Склад документа - '+TStream.arrtable[i].RowData[ii][0].OrderStore+'">'+TStream.arrtable[i].RowData[ii][0].DocNum+'</a>';//Номер документа
+            if (TStream.arrtable[i].RowData[ii][0].Commentary !='') {
+              s=s+'<img style="cursor: pointer;" title="'+TStream.arrtable[i].RowData[ii][0].Commentary+'" onClick=\'jqswfillInfo("'+TStream.arrtable[i].RowData[ii][0].Commentary+'","Комментарий",20,150,10); '+
+              'event.stopPropagation(); return false;\' src="/images/orders/com.png">'; //Комментарий
+            }
+            s=s+'</span></td>';
+            s=s+'<td class="col with-border">'+TStream.arrtable[i].RowData[ii][0].SumDoc+'</td>'; //Сумма док.
+            s=s+'<td class="col with-border">'+TStream.arrtable[i].RowData[ii][0].CurrencyDoc+'</td>'; //Валюта док.
+            s=s+'<td class="col with-border">'+TStream.arrtable[i].RowData[ii][0].DateDoc+'</td>'; //Дата  док.
+            if (ii>0) {
             //s=s+'<td class="col"></td>; //Комментарий
             //s=s+'</tr>';
+            }
           }
+          s=s+'</td>';
         }
-  
         s=s+'<td class="col" title="'+TStream.arrtable[i].SelfCommentary+'">'+TStream.arrtable[i].temp+'</td>'; //Собственный комментарий заказа
         s=s+'</tr>';
       }
       if (TStream.Commentary2 !='') {
         jqswMessage(TStream.Commentary2);
       }
-      s=s+'       </table>';
+      s=s+'</table>';
       s=s+'<table class="table table-body" cellspacing=0 id="tablecontent2" >';
       s=s+'</table>';
       s=s+'     </form>';
@@ -5440,7 +5524,7 @@ function New_getOrderListPage(){
   s=s+'        <ul class="order-list-btn">';
   if (TStream.STATUS==orstForming) {
     s=s+'          <li><a href="#" onclick="ec(\'refreshprices\', \'order='+TStream.OrderCode+'\',\'newbj\');" class="update" title="Обновить цены в заказах"></a></li>';
-    s=s+'          <li><a href="#" class="merge" onclick="ec(\'fillheaderbeforeprocessing\', \'ordr='+TStream.OrderCode+'\',\'abj\'" title="Отправить заказ на обработку"></a></li>';
+    s=s+'          <li><a href="#" class="merge" onclick="ec(\'fillheaderbeforeprocessing\', \'ordr='+TStream.OrderCode+'\',\'abj\');" title="Отправить заказ на обработку"></a></li>';
   }
   else {
     s=s+'          <li><a href="#" class="dop-info"  onclick="ec(\'fillallparametrsorderdopdata\', \'ordercode='+TStream.OrderCode+'\',\'abj\'" title="Показать дополнительную информацию"></a></li>';
@@ -5452,7 +5536,7 @@ function New_getOrderListPage(){
     s=s+'          <li><a href="#" onclick=\'window.open("'+scriptname+'/universal?act=ac&order='+TStream.OrderCode+'&contract='+TStream.ContractID+'");\' class="money" title="Показать заказ в '+fnIfStr(TStream.acctype=='0', 'гривне', 'евро')+'"></a></li>';
   }
   if (TStream.STATUS==orstForming) {
-    s=s+'          <li><a href="#" onclick="del_order();" class="del" title="Удалить"></a></li>'; 
+    s=s+'          <li><a href="#" onclick="del_orderNew();" class="del" title="Удалить"></a></li>'; 
   }
   s=s+'        </ul>';
   s=s+'      </div>';
@@ -5478,8 +5562,8 @@ function New_getOrderListPage(){
   if (TStream.STATUS==orstForming) {
     s=s+'        <label for="notation-input">Примечание "для себя":</label>';
     s=s+'        <input type="text" name="notation-input" value="'+TStream.SelfCommentary+'" id="notation-input" class="notation-input">';
-    s=s+'        <a href="#" onclick=" var com=$(\'#notation-input\').val(); ec(\'saveselfcommentary\',\'ordr='+TStream.OrderCode+'&coment=\'+com,\'abj\');" class="notation-save-btn" title="Сохранить комментарий"></a>';
-    s=s+'        <a href="#" class="notation-delivery-btn btn" onclick="ec(\'fillheaderbeforeprocessing\', \'ordr='+TStream.OrderCode+'\',\'abj\');" title="Доставка" >Доставка</a>';
+    s=s+'        <a href="#" onclick=" var com=$(\'#notation-input\').val(); ec(\'saveselfcommentary\',\'ordr='+TStream.OrderCode+'&coment=\'+com,\'newbj\');" class="notation-save-btn" title="Сохранить комментарий"></a>';
+    s=s+'        <a href="#" class="notation-delivery-btn btn" onclick="ec(\'fillheaderbeforeprocessing\', \'ordr='+TStream.OrderCode+'\',\'newbj\');" title="Доставка" >Доставка</a>';
   }
   else {
     s=s+'        <label for="notation-input">Примечание "для себя": '+TStream.SelfCommentary+'</label>';
@@ -5543,16 +5627,9 @@ function New_getOrderListPage(){
  s=s+'          <th class="col" title="Единица измерения товара">Единица</th>';
  s=s+'          <th title="Входная цена" class="col">Цена</th>';
  s=s+'          <th class="col" title="Общая сумма заказа" id="sumcell" >'+TStream.ORDRSUM+' '+TStream.CURRENCY+'</th>';
- if (TStream.flUber) {
-   if (!TStream.IsUberClient) {
-     if (TStream.CURRENCY!=TStream.ballsName) {
-       s=s+'        <th class="col" title="Общее количество '+TStream.ballsName+'" id="totalballs"></th>';
-     }
-   }
- }
- else{
+ if (!TStream.IsUberClient) {
    if (TStream.CURRENCY!=TStream.ballsName) {
-     s=s+'        <th class="col" title="Общее количество '+ballsName+'" id="totalballs"></th>';
+     s=s+'        <th class="col" title="Общее количество '+TStream.ballsName+'" id="totalballs"></th>';
    }
  }
  s=s+'          <th></th>';
@@ -5607,25 +5684,12 @@ function New_getOrderListPage(){
    s=s+'  <span class="price">'+TStream.arrtable[i].WarePrice+'</span>';
    s=s+'</td>';
    s=s+'<td class="col cost with-border" id="lnsum'+TStream.arrtable[i].CurLine+'"><span class="suminrow">'+TStream.arrtable[i].WarePriceSum+'</span></td>';   // сумма
-   if (TStream.flUber) {
-     if (!TStream.IsUberClient) {
-       if (TStream.CURRENCY !=TStream.ballsName) {
-         s=s+'<td class="col cost with-border ballsinrow" id="lnsumballs'+TStream.arrtable[i].CurLine+'">'+ TStream.arrtable[i].ballCount+'</td>';   // баллы
-       }
-     }
-   }
-   else{
+   if (!TStream.IsUberClient) {
      if (TStream.CURRENCY !=TStream.ballsName) {
-                s=s+'<td class="col cost with-border ballsinrow" id="lnsumballs'+TStream.arrtable[i].CurLine+'">'+ TStream.arrtable[i].ballCount+'</td>';   // баллы
+       s=s+'<td class="col cost with-border ballsinrow" id="lnsumballs'+TStream.arrtable[i].CurLine+'">'+ TStream.arrtable[i].ballCount+'</td>';   // баллы
      }
    }
    s=s+'</tr>';
- }
- if (TStream.flUber) {
-   if (TStream.IsUberClient) { $("#totalballs").html(TStream.ballsSum+' '+TStream.ballsName);}
- }
- else { 
-   $("#totalballs").html(TStream.ballsSum+' '+TStream.ballsName);
  }
  s=s+'      </table>';
  s=s+'<table class="table table-body" cellspacing=0 id="tablecontent2" >';
@@ -5677,6 +5741,13 @@ function New_getOrderListPage(){
     $(div).html(s);
 
   }
+  if (TStream.flUber) {
+    if (!TStream.IsUberClient) {  $("#totalballs").html(TStream.ballsSum+' '+TStream.ballsName);}
+  }
+  else { 
+    $("#totalballs").html(TStream.ballsSum+' '+TStream.ballsName);
+  }
+ 
   setOrderClientInfoSpanWidth();
   if (TStream.ExcelFileNameSRC !='') {
     $("#downloadframe")[0].src=TStream.ExcelFileNameSRC;
@@ -6009,5 +6080,293 @@ function arrObject(){
 } 
 
 
+function getScanClaimWindow(){
+  var title='Заявка на добавление сотрудника';
+  var text='<div class="scan-claim-container">';
+  text+='<input type=hidden name="code" value="">';
+  text+='<table class="table-body scan-claim-table-body table-left" id="new-data-claim-table">';
+  text+='  <tr>';
+  text+='    <td class="col name">ФИО</td>';
+  text+='    <td class="col"><input class="svkinput" type=text name="fio" id="scan-fio" value=""></td>';
+  text+='  </tr>';
+  text+='  <tr>';
+  text+='    <td class="col name">Должность</td>';
+  text+='    <td class="col"><input class="svkinput" type=text name="post" id="scan-post" value=""></td>';
+  text+='  </tr>';
+  text+='  <tr>';
+  text+='    <td class="col name">Телефоны</td>';
+  text+='    <td class="col"><input class="svkinput" type=text name="phohes" id="scan-phones" value=""></td>';
+  text+='  </tr>';
+  text+='  <tr>';
+  text+='    <td class="col name">E-mail</td>';
+  text+='    <td class="col"><input class="svkinput" type=text name="mail" id="scan-mail" value=""></td>';
+  text+='  </tr>';
+  text+='  </table>';
+  text+='<table class="table-body scan-claim-table-body table-left" id="new-scan-claim-table">';
+  text+='  <tr>';
+  text+='    <td class="col copy">Скан-копии документов</td><td class="col"></td>';
+  text+=' </tr>';
+  text+='  <tr>';
+  text+='    <td class="col">ИНН</td>';
+  text+='    <td class="col"><a class="apply-btn btn" onclick="">Добавить скан</a></td>';
+  text+='  </tr>';
+  text+='  <tr>';
+  text+='    <td class="col">Выберите тип документа,удостоверяющего личность</td><td class="col"></td>';
+  text+=' </tr>';
+  text+='  <tr>';
+  text+='   <td class="col"><div>'
+   +'<input id="scan-id-pasport" name="scan-id-passport" value="0" onclick="localTurnRadioScanBtn(this);" title="" type="radio">'
+   +'<label for="scan-id-pasport" title="">ID-карта</label>'
+   +'<input id="scan-old-pasport" name="scan-old-passport" onclick="localTurnRadioScanBtn(this);" value="1" title="" type="radio">'
+   +'<label for="scan-old-pasport" title="">Паспорт старого образца</label>'
+  text+='   </div></td><td class="col"></td>';
+  text+=' </tr>';
+  text+='  <tr>';
+  text+='    <td class="col">Первый разворот</td>';
+  text+='    <td class="col"><a class="apply-btn btn" onclick="">Добавить скан</a></td>';
+  text+='  </tr>';
+  text+='  <tr>';
+  text+='    <td class="col">Второй разворот</td>';
+  text+='    <td class="col"><a class="apply-btn btn" onclick="">Добавить скан</a></td>';
+  text+='  </tr>';
+  text+='  <tr>';
+  text+='    <td class="col">Третий разворот, при наличии второго фото</td>';
+  text+='    <td class="col"><a class="apply-btn btn" onclick="">Добавить скан</a></td>';
+  text+='  </tr>';
+  text+='  <tr>';
+  text+='    <td class="col">Прописка</td>';
+  text+='    <td class="col"><a class="apply-btn btn" onclick="">Добавить скан</a></td>';
+  text+='  </tr>';
+  text+='</table>';
+  text+='</div>';
+  text+='<div class="text-right">';
+  text+='<a class="apply-btn btn" onclick="saveNewAcc();">Отправить</a>';
+  text+='<a class="close-btn btn info-close" onclick="">Закрыть</a>';
+  text+='</div>';
+  jqswfillInfo(text, title,2,450,20);
+  $('#scan-old-pasport').prop('checked',true);
+}
+
+function localTurnRadioScanBtn(elem){
+  if (elem.id=='scan-id-pasport'){
+    if ($(elem).prop("checked")==true){
+      $("#scan-old-pasport").prop("checked",false);
+      var el = document.getElementById('third-file');
+      $(el).addClass('disabled');
+      el.disabled =true;
+      el=$(el).prev().prev();
+      el.disabled = true;
+      $(el).addClass('disabled');
+      el = document.getElementById('adress-page');
+      $(el).addClass('disabled');
+      el.disabled =true;
+      el=$(el).prev().prev();
+      el.disabled = true;
+      $(el).addClass('disabled');
+      $("#new-scan-claim-table td.first-page").text("Лицевая сторона");
+      $("#new-scan-claim-table td.second-page").text("Обратная сторона");
+    }
+  }
+  else{
+     if ($(elem).prop("checked")==true){
+       $("#scan-id-pasport").prop("checked",false);
+       var el = document.getElementById('third-file');
+       $(el).removeClass('disabled');
+       el.disabled = false;
+       el=$(el).prev().prev();
+       el.disabled = false;
+       $(el).removeClass('disabled');
+       el = document.getElementById('adress-page');
+       $(el).removeClass('disabled');
+       el.disabled =false;
+       el=$(el).prev().prev();
+       el.disabled = false;
+       $(el).removeClass('disabled');
+       $("#new-scan-claim-table td.first-page").text("Первый разворот");
+       $("#new-scan-claim-table td.second-page").text("Второй разворот");
+     }
+  }
+}
+
+function getStrFromScanFile(_elem_id,_reader,_size,_name){
+  if (_reader.readyState==2){
+    var flag=false;
+    arrScanFiles.forEach(function(values, item){
+      if (values.keycode==_elem_id){
+        flag=true;
+        arrScanFiles[item].size=_size;
+        arrScanFiles[item].name=_name;
+        arrScanFiles[item].content=encodeURIComponent(_reader.result);
+      }
+    });
+    if ( !flag){
+       arrScanFiles[arrScanFiles.length]={keycode:_elem_id,content:encodeURIComponent(_reader.result),size:_size,name:_name};
+    }
+  }
+}
+
+function getNameScan(elem,str){
+    if ($(elem)[0].files[0].size<=2097152){
+      if ( ($(elem)[0].files[0].type !='image/png') && ($(elem)[0].files[0].type !='image/jpeg')){
+        jqswMessageError('Допускаются файлы изображений только типов PNG и JPG');
+      }
+      else{
+        if (str.lastIndexOf('\\')){
+          var i = str.lastIndexOf('\\')+1;
+        }
+        else{
+          var i = str.lastIndexOf('/')+1;
+        }						
+        var filename = str.slice(i);			
+        var uploaded =$(elem).prev();
+        uploaded.text(filename);
+        filename=removeEnterSymFromStr(filename);   
+        var btn=$(elem).prev().prev();
+        btn.addClass('remove');
+        btn.text('Удалить скан');
+        btn.bind('click', function(event) {
+         delFileScan(elem);
+        });
+        var selectedFile = elem.files[0];
+        var reader = new FileReader();  
+        reader.readAsDataURL(selectedFile);
+        reader.onload=function (e){
+          getStrFromScanFile(elem.id,reader,$(elem)[0].files[0].size,filename);
+        }
+      }
+    }						
+    else{
+      jqswMessageError('Размер прикрепляемого файла не должен быть больше 2 Мb');
+    }
+}
+
+function getNameScanRegistr(elem,str){
+    if ($(elem)[0].files[0].size<=2097152){
+      if ( ($(elem)[0].files[0].type !='image/png') && ($(elem)[0].files[0].type !='image/jpeg')){
+        jqswMessageError('Допускаются файлы изображений только типов PNG и JPG');
+      }
+      else{
+        if (str.lastIndexOf('\\')){
+          var i = str.lastIndexOf('\\')+1;
+        }
+        else{
+          var i = str.lastIndexOf('/')+1;
+        }						
+        var filename = str.slice(i);			
+        var uploaded =$(elem).prev();
+        uploaded.text(filename);
+        filename=removeEnterSymFromStr(filename);  
+        var btn=$(elem).prev().prev();
+        btn.addClass('remove');
+        btn.text('Удалить скан');
+        btn.bind('click', function(event) {
+          delFileScan(elem);
+        });
+        var selectedFile = elem.files[0];
+        var reader = new FileReader();  
+        reader.readAsDataURL(selectedFile);
+        reader.onload=function (e){
+          getStrFromScanFile(elem.id,reader,$(elem)[0].files[0].size,filename);
+        }
+      }
+    }						
+    else{
+      jqswMessageError('Размер прикрепляемого файла не должен быть больше 2 Мb');
+    }
+}
 
 
+function delFileScan(elem){
+ elem.value='';
+ var btn=$(elem).prev().prev();
+ btn.removeClass('remove');
+ btn.text('Добавить скан');
+ btn=$(elem).prev();
+ btn.text('');
+ arrScanFiles.forEach(function(values, item){
+   if (values.keycode==elem.id){
+     arrScanFiles.splice(item,1);
+    }
+ });
+}
+
+
+function getPersonalDataClaimWindowShort(_id){
+  $("#form-personal-data-mode").val('2');
+  $("#personal-data-table").css("display","none");
+  $("#popup-newcontactpersonorder").removeClass("hide");
+  $("#popup-newcontactpersonorder h3").text('Отправить новые сканы');
+  if (_id !='-1'){
+    //$("#"+_id).attr("class","users-icon-scan any");
+    $('#form-personal-data-user-code').val($("#"+_id).attr("user"));
+  }
+  else{
+    $('#form-personal-data-user-code').val('-1');    
+  }
+}
+
+function removeEnterSymFromStr(str){
+  while (str.indexOf('\n')>0){
+    str=str.replace('\n','');
+  }
+  while (str.indexOf('\t')>0){
+    str=str.replace('\t','');
+  }
+   while (str.indexOf(',')>0){
+    str=str.replace(',','_');
+  }    
+  return str;    
+}
+
+function getPersonalDataClaimWindowNormal(){
+  $('#form-personal-data-mode').val('1'); 
+  $('#popup-newcontactpersonorder').removeClass('hide'); 
+  $('#personal-data-table').css('display','block');
+  $("#popup-newcontactpersonorder h3").text('Заявка на добавление сотрудника');
+  $('#form-personal-data-user-code').val('-1');
+}
+
+function clearOptionsPersonalDataWindow(){
+  $("#popup-newcontactpersonorder form")[0].reset();
+  var elems=$("#new-scan-claim-table div.fileform div.selectbutton.remove");
+  elems.each(function (i) {
+    delFileScan(this.nextSibling.nextSibling);
+    $("#popup-newcontactpersonorder").addClass("hide");
+  });
+  $("#scan-old-pasport").prop("checked",true);
+  $("#scan-id-pasport").prop("checked",false);
+  arrScanFiles.length=0;
+  localTurnRadioScanBtn(document.getElementById('scan-old-pasport'));
+}
+
+function createEmailWindowForUser(mess){
+ var s="";
+ s+='<span class="mail-server-text-span">'+mess+'</span>';      
+ s+='<form class="new-user-email-form" onsubmit="">'; 
+ s+=' <input type=hidden name=act value="">';
+ s+=' <table id="personal-data-table" class="new-user-email-table">';
+ s+='  <tr><td>E-mail</td><td><input class=svkinput type=text name="email"></td></tr>';
+ s+=' </table>';
+ s+='</form>'; 
+ s+='<div class="popup-buttons">'; // buttons
+ s+='  <button class="btn blue-btn" title="Отправить заявку" onclick="sendEmailWindowForUser(\''+mess+'\');">Отправить</button>';
+ s+='  <button class="btn white-btn" title="Закрыть окно" onclick="$(\'#general-info-tree\').addClass(\'hide\');">Закрыть</button>';
+ s+='        </div>'; // buttons
+ jqswfillInfo(s,"Заявка на изменение e-mail",2,450,25);
+ $("#info-tree-container").css("min-width","400px");
+}
+
+function sendEmailWindowForUser(mess){
+  var email=$("table.new-user-email-table td input");
+  if (!email.val()) {
+    jqswMessageError("Вы не указали e-mail сотрудника");
+    email.focus();
+    return false;
+  }
+  else{
+    var data='';
+    data+='&part0='+mess;  
+    data+='&part1=Новый E-mail: '+email.val();  
+    ec('sendorderforchangeemaildata', data, 'newbj');
+  }
+}

@@ -34229,7 +34229,7 @@ var matched, browser;
 					});
 				break;
 				case 'confirm':
-					$("#popup_message").after('<div id="popup_panel"><input class="blue-btn btn" type="button" value="' + ok + '" id="popup_ok" /> <input class="blue-btn btn" type="button" value="' + cancel + '" id="popup_cancel" /></div>');
+                    $("#popup_message").after('<div id="popup_panel"><input class="blue-btn btn" type="button" value="' + ok + '" id="popup_ok" /> <input class="blue-btn btn" type="button" value="' + cancel + '" id="popup_cancel" /></div>');
 					$("#popup_ok").click( function() {
 						$.alerts._hide();
 						if( callback ) callback(true);
@@ -34244,6 +34244,11 @@ var matched, browser;
 						if( e.keyCode == 27 ) $("#popup_cancel").trigger('click');
 					});
                     $("#popup_container").css("max-width","300px");
+                    //console.log (cancel);
+                    if (cancel==''){
+                      $("#popup_cancel").addClass('hide'); 
+                    }
+                    else {$("#popup_cancel").removeClass('hide'); }
 				break;
 				case 'prompt':
 					$("#popup_message").append('<br /><input type="text" size="30" class="svkinput" id="popup_prompt" />').after('<div id="popup_panel"><input class="blue-btn btn" type="button" value="' + ok + '" id="popup_ok" /> <input type="button" class="blue-btn btn" value="' + cancel + '" id="popup_cancel" /></div>');
