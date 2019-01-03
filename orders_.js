@@ -1387,7 +1387,6 @@ function sendorderfornewcontactadd(_user_code) {
         DocType='ID-карта';   
       }  
       letterdata='&filenamelist=Тип документа - '+DocType+','+letterdata.substr(0,letterdata.length-1);
-      console.log(letterdata);
       data+=letterdata+'&filescount='+j;
       var isCheckIDPas=$("#scan-id-pasport").prop("checked");
       for (i=0; i<arrScanFiles.length; i++) { 
@@ -1400,6 +1399,7 @@ function sendorderfornewcontactadd(_user_code) {
           data+='&file'+(i+1)+'_name='+arrScanFiles[i].name+'&file'+(i+1)+'_data='+arrScanFiles[i].content;
         }  
       }
+      console.log(data);    
       startLoadingAnimation();
       $.ajax({
         url: ((form.action)?form.action:scriptname+"/abj"),
@@ -1514,7 +1514,7 @@ function elNew(inp) {
     inp.value=0;
   }
   $(inp).attr('oldvalue_',inp.value);
-  ec('el', "warecode="+inp.id+'&ordr='+((document.getElementById("addlines"))?document.getElementById("addlines").value:'')+"&qty="+inp.value);
+  ec('el', "warecode="+inp.id+'&ordr='+((document.getElementById("addlines"))?document.getElementById("addlines").value:'')+"&qty="+inp.value,'newbj');
 }
 
 function elBonus(inp,ordercode) {
@@ -1719,7 +1719,7 @@ function checkwareqty(id, elem,IsFromWareSearch,ordercode) {
            data+=((contrel.length)?"&ordr="+ordercode+"&bonus=true&id="+id:"&bonus=true&id="+id);
          }
   }
-  ec('getqtybyanalogsandstorages', data, fnIfStr(flNewModeCGI,'newbj','abj'));
+  ec('getqtybyanalogsandstorages', data, fnIfStr(flNewOrderMode,'newbj','abj'));
   return false;
 }
 
@@ -2105,7 +2105,7 @@ function linestoorder(fromwaresearch) {
         s=s+'&'+form.elements[i].id+'='+(isNaN(val)?'0':val);
       }
     }  
-    ec('linestoorder', s, fnIfStr(flNewModeCGI,'newbj','abj'));
+    ec('linestoorder', s, 'abj');
   }
   else{
     if ($('#addlines', top.document).length) {
@@ -2120,7 +2120,66 @@ function linestoorder(fromwaresearch) {
             s=s+'&'+form.elements[i].id+'='+(isNaN(val)?'0':val);
           }
         }
-        ec('linestoorder', s,fnIfStr(flNewModeCGI,'newbj','abj'));
+        ec('linestoorder', s,'abj');
+      }
+      else{
+        s='act=getlistopenordersformcheckqty'+"&contract="+((contrel.length)?contrel.val():"");
+        //s='act=linefromsearchtoorder'; 
+        s=s+'&ordr='+((document.getElementById("addlines"))?document.getElementById("addlines").value:'');
+        if (fromwaresearch=='true'){
+           s=s+'&'+$("#requestqty").attr("ware-code")+'_'+$("#requestqty").attr("storage")+'='+$("#requestqty").val();
+        }
+        else{
+          for (var i=0; i<form.elements.length; i++){
+            val=parseFloat(form.elements[i].value);
+            s=s+'&'+form.elements[i].id+'='+(isNaN(val)?'0':val);
+          }
+        }
+
+        // console.log(s);
+         $.ajax({
+           url: scriptname+"/newbj",
+           type: "post",
+           data: s,
+           dataType: "script"
+        });
+        $("#wareanalogdialog").dialog("close");
+      }
+    }  
+  }  
+}
+
+function linestoorderNew(fromwaresearch) {
+  form=document.getElementById("of");
+  var contrel=$("#contract");
+  s="contract="+((contrel.length)?contrel.val():"");
+  if ( $("#cur-bonus-order-code").length){
+    s=s+'&ordr='+$("#cur-bonus-order-code").val();
+    if (fromwaresearch=='true'){
+       s=s+'&'+$("#requestqty").attr("ware-code")+'_'+$("#requestqty").attr("storage")+'='+$("#requestqty").val();
+    }
+    else{
+      for (var i=0; i<form.elements.length; i++){
+        val=parseFloat(form.elements[i].value);
+        s=s+'&'+form.elements[i].id+'='+(isNaN(val)?'0':val);
+      }
+    }  
+    ec('linestoorder', s, 'newbj');
+  }
+  else{
+    if ($('#addlines', top.document).length) {
+      if ($('#addlines', top.document).attr('value')) {
+        s=s+'&ordr='+((document.getElementById("addlines"))?document.getElementById("addlines").value:'');
+        if (fromwaresearch=='true'){
+          s=s+'&'+$("#requestqty").attr("ware-code")+'_'+$("#requestqty").attr("storage")+'='+$("#requestqty").val();
+        }
+        else{
+          for (var i=0; i<form.elements.length; i++){
+            val=parseFloat(form.elements[i].value);
+            s=s+'&'+form.elements[i].id+'='+(isNaN(val)?'0':val);
+          }
+        }
+        ec('linestoorder', s,'newbj');
       }
       else{
         s='act=getlistopenordersformcheckqty'+"&contract="+((contrel.length)?contrel.val():"");
@@ -3800,7 +3859,7 @@ function sendchangesdataorder() {
     }
   } 
   //console.log(data);
-  ec('sendorderforchangepersondata', data, 'abj');
+  ec('sendorderforchangepersondata', data, 'newbj');
 }
 
 function check_reg_form_Uber(form) {
@@ -5150,8 +5209,7 @@ function setSemaforCheckWareFunc(){
 }
 
 function New_getContractListWindow(){
-
-  s='';
+  var s='';
   s=s+'   <div class="contracts-body" id="contract-list-body" >';
   s=s+'     <table id="contract-choice-table-header" class="table table-header"  ';
   s=s+'      <tr style="font-size: 14px;" >';
@@ -5232,7 +5290,7 @@ function New_getContractListWindow(){
 }
 
 function New_getContractListPage(){
-  s='';
+  var s='';
   s=s+'   <div class="contracts-body" id="order-body" >';
   s=s+'       <table id="contract-table-header" class="table table-header"> ';
   s=s+'         <tr>';
@@ -5336,7 +5394,7 @@ function fnDrawTitleForSortingRedisign2(OrderField, OrderDesc, CookieOrderName, 
 }
 
 function New_getOrdersListPage(){
-  s='';
+  var  s='';
   s=s+'   <div class="order-container">';
   s=s+'       <div class="order-header">';
   s=s+'         <div class="header-title row">';
@@ -5515,8 +5573,384 @@ function New_getOrdersListPage(){
     }
 }
 
+
+function New_getOptionsPage(){
+  var s='<div id="tablecontentdiv">';
+  s=s+' <ul>';
+  s=s+'    <li><a href="#optioncommondiv" title="Общие настройки">Общие настройки</a></li>';
+  s=s+'    <li><a href="#optionpersondatadiv" title="Персональные данные">Персональные данные</a></li>';
+  if (flMargins) {
+    s=s+'    <li><a href="#optionmarginsdiv" title="Наценки">Наценки</a></li>';
+  }
+  if (flSMS) {
+     if (TStream.SuperVisor) {
+       if (! TStream.IsUberClient) {
+         s=s+'    <li><a href="#optionsmsdiv" title="SMS">SMS</a></li>';
+       }
+     }
+  }
+  if (TStream.SuperVisor) {
+    if (! TStream.IsUberClient) {
+      s=s+'    <li><a href="#optionusersdiv" title="Управление пользователями">Пользователи</a></li>';
+    }
+  }
+  s=s+' </ul>';
+  s=s+'<div id=optioncommondiv  style="margin: 10px 0 0 10px;">';
+  s=s+'<fieldset class="fieldset-default-options"><legend>Настройки заказа по умолчанию</legend>';
+  s=s+'<div id=kinddeliverydefaultdiv>';
+  s=s+'<span id=kinddeliverydefault>';
+  s=s+'Способ получения товара:</span>';
+  s=s+'        <ul class="radio-btn">';
+  if (! flNotReserve) {
+    s=s+'         <li>';
+    s=s+'            <input id="getting-radio-1" value=1 type="radio" name="radio" title="Заказываемый товар будет зарезервирован для Вас на складе отгрузки" />';
+    s=s+'            <label for="getting-radio-1">Резерв</label>';
+  }
+  s=s+'          </li>';
+  s=s+'          <li>';
+  s=s+'            <input id="getting-radio-2" value=2 type="radio" name="radio" title="Заказываемый товар будет собран для самовывоза к указанным дате и времени" />';
+  s=s+'            <label for="getting-radio-2">Самовывоз</label>';
+  s=s+'          </li>';
+  if (! TStream.DeliveryCancel) {
+    s=s+'          <li>';
+    s=s+'            <input id="getting-radio-0" value=0 type="radio" name="radio" title="Заказываемый товар будет доставлен Вам с учетом Ваших пожеланий по способу и времени доставки" />';
+    s=s+'            <label for="getting-radio-0">Доставка</label>';
+    s=s+'          </li>';
+  }
+  s=s+'        </ul>';
+  s=s+'</div>';
+  s=s+'<div id="_ttdefaultdiv" style="display:none;" data-mcs-theme="inset-dark">';
+  s=s+' <table id="_ttdefaulttable" >';
+  s=s+'  <tr>';
+  s=s+'   <td>';
+  s=s+'    <span id=_ttdefault>';
+  s=s+'     Торговая точка&nbsp;(точка доставки):';
+  s=s+'     <br>';
+  s=s+'      <select class="login-input" name=default_tt id=_ttdefaultselect _oldval="" _optDestPoint="'+optDestPoint+'" onchange="changeTTOptionsPage(this,'+optDestPoint+');">';
+  s=s+'      </select>';
+  s=s+'    </span>';
+  if (flTradePoints) {
+    if (TStream.SuperVisor) {
+      s=s+'<br><button class="btn white-btn" style="margin-left: 0px;" onclick="addtochangeTT(\'add\', -1);">Добавить торговую точку</button>';
+      s=s+'<button class="btn white-btn" style="" onclick="addtochangeTT(\'edit\', -1);">Редактировать торговую точку</button>';
+      s=s+'<button class="btn white-btn" style="" onclick="addtochangeTT(\'del\', -1);">Удалить торговую точку</button>';
+      s=s+'  </td>';
+      s=s+'  <td>';
+      s=s+'      <table id="changeTTtable" style="display: none;">';
+      s=s+'      <tr><td colspan=2 style="padding-top: 10px; font-weight: bold;">Заявка на изменение данных</td></tr>';
+      s=s+'      <tr><td colspan=2><button class="btn blue-btn" onclick="sendchangesTT();">Отправить заявку</button></td></tr>';
+      s=s+'      </table>';
+    }
+  }
+  s=s+'   </td>';
+  s=s+'  </tr>';
+  s=s+' </table>';
+  s=s+'</div>';
+  ec("getcontractdestpointslist","value="+TStream.DestID+"&id=_ttdefaultselect&isEmpty=1","newbj"); 
+  s=s+'</fieldset>';
+
+  s=s+'<fieldset class="fieldset-find-options"><legend>Опции поиска</legend>';
+  s=s+'Загружать аналоги сразу, если в результатах поиска меньше <input class="svkinput" size=3 maxlength=2 id=anarows name=anarows value="'+TStream.AnalogsCount+'"> строк.';
+  s=s+'<button class="btn white-btn" style="margin-left: 20px;" onclick="ec(\'saveoption\', \'type='+optResultLimitForAnalog+'&val=\'+$(\'#anarows\').val());">Сохранить</button><br>';
+  s=s+'<input type=checkbox id="ignorspec" name="ignorspec" '+fnIfStr((TStream.ignorspec=='unchecked'), "", "checked")+' onClick="isc(this);" >';
+  s=s+'<label for="ignorspec" title="В назв. товаров не будут учитываться все символы # ! (пробел) , ; : - . [ ] / + № (  ) \ \' "></label>';
+  s=s+'<span>Игнорировать спецсимволы</span>';
+  s=s+'<br>Отображать цену товара в результатах поиска в ';
+  s=s+'        <ul class="radio-btn">';
+  s=s+'          <li>';
+  s=s+'            <input type=radio name=searchcurrency id=searchcurrency1 value=1 '+fnIfStr(TStream.Currency==1, ' checked', '')+' onchange="ec(\'saveoption\', \'type='+optSearchCurrency+'&val=\'+this.value,\'newbj\');">';
+  s=s+'            <label for="searchcurrency1">грн. </label>';
+  s=s+'          <li>';
+  s=s+'            <input type=radio name=searchcurrency  id=searchcurrency10 value=10 '+fnIfStr(TStream.Currency==1, '', ' checked')+' onchange="ec(\'saveoption\', \'type='+optSearchCurrency+'&val=\'+this.value,\'newbj\');">';
+  s=s+'            <label for="searchcurrency10">у.е.</label>';
+  s=s+'        </ul>';
+  s=s+'</fieldset>';
+
+  if (TStream.ContractsCount>1) {
+    s=s+'<fieldset><legend>Прочие опции</legend>';
+    s=s+'<input type=checkbox id="thiscontractdocsonly" '+fnIfStr(TStream.ThisContractDocsOnly, 'checked', '')+' onchange="ec(\'saveoption\', \'type='+optThisContractDocsOnly+'&val=\'+((this.checked)?1:0), \'newbj\');">';
+    s=s+'<label for="thiscontractdocsonly"></label>';
+    s=s+'<span>Показывать только документы текущего контракта</span>';
+    s=s+'</fieldset>';
+  }
+  if (TStream.StoragesCount>0) {
+    s=s+'<fieldset id=storageorder_fs style="width: '+TStream.BlockWidth+'px;"><legend>Видимость и порядок складов</legend>';
+    for (i=0; i<TStream.Storages.length; i++) {
+      s=s+'<th title="'+TStream.Storages[i].FullName+'">'+TStream.Storages[i].ShortName+'</th>';
+    }
+    for (i=0; i<TStream.Storages.length; i++) {
+       s=s+'<div id=storage'+TStream.Storages[i].Code+'><input type=checkbox id=stcheck'+TStream.Storages[i].Code+fnIfStr(TStream.Storages[i].IsVisible, ' checked', '')
+           +fnIfStr(TStream.Storages[i].IsReserve, ' disabled title="Склад, доступный для резервирования, не может быть скрыт"', ' title="'
+           +fnIfStr(TStream.Storages[i].IsVisible, 'Скрыть склад', 'Показать склад')+'" onClick="ec(\'cvos\', \'id='+TStream.Storages[i].Code+'&val=\'+this.checked);" ')+'>'
+           +'<img width=16 src="/images/'+fnIfStr( ((i==0) || (! TStream.Storages[i].IsVisible)), 'tr.gif"', 'ARROW1U.gif" style="cursor: pointer;" title="Поднять склад" onClick="ec(\'storemove\', \'id='+TStream.Storages[i].Code+'&dir=up\');"')+'>'
+           +'<img width=16 src="/images/'+fnIfStr(((i==(TStream.StoragesCount-1)) || (! Storages[i].IsVisible) || ((i<StoragesCount) && (! Storages[i+1].IsVisible))), 'tr.gif"', 'ARROW1D.gif" style="cursor: pointer;" title="Опустить склад" onClick="ec(\storemove\', \'id='+Storages[i].Code+'&dir=down\');"')+'>'
+           +TStream.Storages[i].FullName;
+           s=s+'</div>';
+    }
+    s=s+'</fieldset>';
+ }
+
+ s=s+'<form method=post action="'+descrurl+'/newbj" onSubmit="return sfbaNew(this,\'newbj\');">';
+ s=s+'<fieldset id=chpassfieldset><legend>Сменить пароль</legend>';
+ s=s+'<input type=hidden name=act value=changepass>';
+ s=s+'<table style="font-size: 11px;">';
+ s=s+'<tr><td>Старый пароль:</td><td><input class="svkinput" type="password" name="opass"></td></tr>';
+ s=s+'<tr><td>Новый пароль:</td><td><input class="svkinput" type="password" name="npass1"></td></tr>';
+ s=s+'<tr><td>Новый пароль (повторно):</td><td><input class="svkinput" type="password" name="npass2"></td></tr>';
+ s=s+'<tr><td></td><td><input type=submit class="btn blue-btn" value="Изменить пароль"><input class="btn white-btn" type=reset value="Сброс"></td></tr>'; 
+ s=s+'</table>';
+ s=s+'</fieldset>';
+ s=s+'</form>';
+ s=s+'<hr>';
+ if (TStream.EnablePriceLoad)  {
+   s=s+'            <input checked="true" type=checkbox id=load_auto_mode name=load_auto_mode>';
+   s=s+'            <label for="load_auto_mode"></label>';
+   s=s+'            <span>'+cpdNameAuto+'</span>';
+   s=s+'            <input checked="true" type=checkbox id=load_moto_mode name=load_moto_mode>';
+   s=s+'            <label for="load_moto_mode"></label>';
+   s=s+'            <span>'+cpdNameMoto+'</span>';
+   s=s+'            <input checked="true" type=checkbox id=load_motul_mode name=load_motul_mode>';
+   s=s+'            <label for="load_motul_mode"></label>';
+   s=s+'            <span>'+cpdNameMotul+'</span>';
+   s=s+'            <input checked="true" type=checkbox id=load_hd_mode name=load_hd_mode>';
+   s=s+'            <label for="load_hd_mode"></label>';
+   s=s+'            <span>'+cpdNameHD+'</span>';
+   s=s+'<button class="btn white-btn" onclick="$(\'#downloadframe\')[0].src=\''+scriptname+
+        '/ifbj?act=getprice&contract='+TStream.ContractID+'&version=\'+getVersionPrice();" >Скачать прайс</button> ';
+ }
+ s=s+'<hr>';
+ s=s+'<fieldset><legend>Файлы для скачивания</legend>';
+ s=s+'<table>';
+ var link='<a class=tablabel href="#" onclick=\'$("#downloadframe")[0].src="'+TStream.link+'";\'>';
+ s=s+'<tr><td class=dfiles0>'+link+'<img src="/images/pdf.png"></a></td><td class=dfiles1>'+link+'Бланк заявки на возврат</a></td>';
+ s=s+'<td class=dfiles2>Внимание! Все поля заявки обязательны к заполнению! Товар по заявкам на возврат с незаполненными полями приниматься не будет!</td> ';
+ s=s+'</tr></table>';
+ s=s+'</fieldset>';
+
+ s=s+'</div>';
+ s=s+'    <div id="optionpersondatadiv" style="padding: 10px; font-size: 14px;">';
+ s=s+'    <table><tr><td>';
+  
+ s=s+'    <table>';
+ s=s+'    <tr><td>ФИО: </td><td>'+TStream.name+'</td><td><button class="btn white-btn" title="Добавить в заявку на изменение данных" onclick="addtochangedataorder(this, \'fio\', \'edit\', 0);" >'+
+     'Редактировать</button></td></tr>';
+ if (! TStream.IsUberClient) {
+   s=s+'    <tr><td>Должность: </td><td>'+TStream.post+'</td><td><button class="btn white-btn" title="Добавить в заявку на изменение данных" onclick="addtochangedataorder(this, \'post\', \'edit\', 0);" >'+
+       'Редактировать</button></td></tr>';
+ }
+ var i=0;  
+ var temp='<button class="btn white-btn" title="Добавить в заявку на изменение данных" onclick="addtochangedataorder(this, \'phone\', \'edit\', '+TStream.PhoneTemp2+');" >Редактировать</button>';    
+ s=s+'    <tr><td >Телефоны: </td><td class="phonecell">'+TStream.PhoneTemp1+'</td>';
+ s=s+'      <td>'+temp+'</td>';
+ temp='<button class="btn redtr-btn" title="Добавить в заявку на удаление" onclick="addtochangedataorder(this, \'phone\', \'del\', '+TStream.EmailTemp1+');" >Удалить</button>'
+ s=s+'      <td>'+temp+'</td>';
+ s=s+'    </tr>';
+ for (i=1; i<TStream.Phones.length;i++) {
+   s=s+'    <tr>';
+   s=s+'      <td></td>';
+   s=s+'      <td class="phonecell">'+TStream.Phones[i]+'</td>';
+   s=s+'      <td><button class="btn white-btn" title="Добавить в заявку на изменение данных" onclick="addtochangedataorder(this, \'phone\', \'edit\', '+i+');" >'
+       +'Редактировать</button></td>';
+   s=s+'      <td><button class="btn redtr-btn" title="Добавить в заявку на удаление" onclick="addtochangedataorder(this, \'phone\', \'del\', '+i+');" >Удалить</button></td>';
+   s=s+'    </tr>';
+ }
+ if (! TStream.IsUberClient) {
+   s=s+'    <tr><td></td><td><button class="btn bluetr-btn" onclick="addtochangedataorder(this, \'phone\', \'add\', -1);">+Добавить телефон</button></td><td> </td><td> </td></tr>';
+ }
+ i=0;
+ s=s+'    <tr><td class="emailcell">Email: </td><td>'+TStream.EmailTemp2+'</td>';
+ temp='<button class="btn white-btn" title="Добавить в заявку на изменение данных" onclick="addtochangedataorder(this, \'email\', \'edit\', '+TStream.EmailTemp3+');" >Редактировать</button>';
+ s=s+'      <td>'+temp+'</td>';
+ temp='<button class="btn redtr-btn" title="Добавить в заявку на удаление" onclick="addtochangedataorder(this, \'email\', \'del\', '+TStream.EmailTemp4+');" >Удалить</button>'
+ s=s+'      <td>'+temp+'</td>';
+ s=s+'    </tr>';
+ for (i=1; i<TStream.Emails.length;i++) {
+   s=s+'    <tr>';
+   s=s+'      <td></td>';
+   s=s+'      <td class="emailcell">'+TStream.Emails[i]+'</td>';
+   s=s+'      <td><button class="btn white-btn" title="Добавить в заявку на изменение данных" onclick="addtochangedataorder(this, \'email\', \'edit\', '+i+');">Редактировать</button></td>';
+   s=s+'      <td><button class="btn redtr-btn" title="Добавить в заявку на удаление" onclick="addtochangedataorder(this, \'email\', \'del\', '+i+');">Удалить</abutton></td>';
+   s=s+'    </tr>';
+ }
+ if (! TStream.IsUberClient) {
+   s=s+'    <tr><td></td><td><button class="btn bluetr-btn" onclick="addtochangedataorder(this, \'email\', \'add\', -1);">+Добавить email</button></td><td> </td><td> </td></tr>';
+ }
+ if (TStream.SuperVisor) {
+   if (! TStream.IsUberClient) {
+     s=s+'    <tr><td colspan="7"><button class="btn white-btn" onclick="addtochangedataorder(this, \'invoice\', \'add\', 0);">'+fnIfStr(TStream.SendInvoice,'Отключить автоматическую рассылку инвойсов','Включить автоматическую рассылку инвойсов')+'</button></td></tr>';
+   }
+ }
+ if (flScanDocs) {
+   s=s+'    <tr>';
+   s=s+'     <td>';
+   s=s+'      <span class="scan-doc-name-span">ИНН</span>';
+   s=s+'     </td>';
+   s=s+'     <td>';
+   s=s+'      <span class="scan-doc-descr-span">'+TStream.INN+'</span>';
+   s=s+'     </td>';
+   s=s+'    </tr>';
+   s=s+'    <tr>';
+   s=s+'     <td>';
+   s=s+'      <span class="scan-doc-name-span">Паспорт</span>';
+   s=s+'     </td>';
+   s=s+'     <td>';
+   s=s+'      <span class="scan-doc-descr-span">'+TStream.Pasport+'</span>';
+   s=s+'     </td>';
+   s=s+'    </tr>';
+   s=s+'    <tr>';
+   s=s+'     <td style="text-align: center; vertical-align: midle;" colspan="2">';
+   s=s+'      <button class="btn white-btn" onclick="getPersonalDataClaimWindowShort(\'-1\');">Отправить сканы</button>';
+   s=s+'     </td>';
+   s=s+'    </tr>';
+ }
+ s=s+'    </table>';
+ s=s+'    </td><td>'; // таблица из 2 ячеек,в одной из которых таблица данных, в другой - таблица заявки
+ s=s+'      <table id=changedataordertable style="display: none;">';
+ s=s+'      <tr><td colspan=2 style="padding-top: 20px; font-weight: bold;">Заявка на изменение данных</td></tr>';
+ s=s+'      <tr><td colspan=2><button class="btn blue-btn" onclick="sendchangesdataorder();">Отправить заявку</button></td></tr>';
+ s=s+'      </table>';
+ s=s+'    </td></tr></table>'; // таблица из 2 ячеек,в одной из которых таблица данных, в другой - таблица заявки
+
+ s=s+'    </div>';   // optionpersondatadiv   ???
+ if (flSMS)  {
+   s=s+'    <div id="optionsmsdiv" style="padding: 10px; font-size: 14px; position: relative;">';
+   if (TStream.Currency!=0) {
+     s=s+'<table class="st" cellspacing=0 id="tableheadersms" style="margin-top: 0px; border-right: 1px solid #ff0;">';
+     s=s+'<tr>';
+     s=s+'<td style="width: 150px;" >Номер</td>';
+     s=s+'<td style="width: 350px;">Контактные лица</td>';
+     for (i=0; i<TStream.Currency; i++) {
+       s=s+'<td style="width: 110px;">'+TStream.Currencys[i]+'</td>';
+     }
+     s=s+'</tr>';
+     s=s+'</table>';
+     s=s+'<div id="tablecontentdiv" >';
+     s=s+'<table class="st" cellspacing=0 id="tablecontentsms" style="margin-top: 0px;border-right: 1px solid #ff0;">';
+     for (i=0; i<TStream.CurrencyContactCount; i++) {
+      s=s+'<tr class="lblchoice'+fnIfStr((i%2==0), ' altrow', '')+'" id="tr'+i+'">';
+      s=s+'<td style="width: 150px;">'+TStream.CurrencyContact[i].tel+'</td>';
+      s=s+'<td style="width: 350px; text-align: left; "><span style="white-space: pre;">'+TStream.CurrencyContact[i].employes+'</span></td>';
+      for (j=0; j<TStream.Currency; j++) {
+        s=s+'<td style="width: 110px;"><input type=checkbox  name="cb'+i+'_'+j+'" id="cb'+i+'_'+j+'" '+
+        ' onclick="$(this).attr(\'disabled\',\'disabled\'); addtochangedatasms(\'`'+TStream.topics[j]+'`\',\''+fnIfStr(TStream.CurrencyContact[i].issend[j], 'del', 'add')+'\',\''+TStream.CurrencyContact[i].name+'\',\''+TStream.CurrencyContact[i].tel+'\',\'cb'+i+'_'+j+'\',\''+i+'\'); "></td>';
+        //$("#cb'+IntToStr(i)+'_'+IntToStr(j)+'").prop("disabled",false);
+        //$("#cb'+IntToStr(i)+'_'+IntToStr(j)+'").prop("checked",'''+fnIfStr(issend, 'checked', '')+''');
+      }
+      s=s+'</tr>';
+     }
+     s=s+'</table>';
+     s=s+'</div>';
+     s=s+'    <table id=changedatasmstable style="display: none;">';
+     s=s+'    <tr><td colspan=2 style="padding-top: 20px; font-weight: bold;">Заявка на изменение данных</td></tr>';
+     s=s+'    <tr><td colspan=2><button onclick="sendchangesdatasms();">Отправить заявку</button></td></tr>';
+     s=s+'    </table>';
+     s=s+'</div>';   // optionmarginsdiv   ???
+   }
+}
+if (TStream.SuperVisor)  {
+  if ((! TStream.IsUberClient)  && (TStream.Past2)) {
+    s=s+'<div id="optionusersdiv" data-mcs-theme="inset-dark" style="padding: 10px; position: relative;">';
+    s=s+'<table class="table table-body mono">';
+    s=s+' <tr>';
+    s=s+'    <th style="border-left-width: 0px;">ФИО</th>';
+    s=s+'    <th>Должность</th>';
+    s=s+'    <th>Логин</th>';
+    for (i=0; i<TStream.ContractsCountForEdit; i++) {
+      s=s+'  <th code="'+TStream.ContractsForEdit[i].ContractsCodes+'">'+TStream.ContractsForEdit[i].temp+'</th>';
+    }
+    s=s+'    <th colspan=3>Действия</th>';
+    if (flScanDocs) {
+      s=s+'  <th>ИНН</th>';
+      s=s+'  <th>Паспорт</th>';
+      s=s+'  <th title="Наличие скан-копий документов">Сканы</th>';
+    }
+    s=s+'  </tr>';
+    for (i=0; i<TStream.UserCount; i++) {
+      s=s+'  <tr class="lblchoice'+fnIfStr(((i%2)==0), ' altrow', '')+'">';
+      s=s+'    <td style="border-left-width: 0px;">'+TStream.UserInfo[i].FIO+'</td>';// ФИО
+      s=s+'    <td>'+TStream.UserInfo[i].Post+'</td>'; // Должность
+      s=s+'    <td id=login'+TStream.UserInfo[i].CurUserCode+'>'+TStream.UserInfo[i].Login+'</td>'; //логин
+      for (j=0; j<TStream.ContractsCountForEdit; j++) {
+        s=s+'    <td class="center"><input type=checkbox id="uc_'+TStream.UserInfo[i].CurUserCode+'_'+TStream.ContractsForEdit[j].ContractsCodes+'" user="'+TStream.UserInfo[i].CurUserCode+'" contract="'+TStream.ContractsForEdit[j].ContractsCodes+'" '+fnIfStr(TStream.UserInfo[i].IsChecked[j], 'checked', '')+'><label for="uc_'+TStream.UserInfo[i].CurUserCode+'_'+TStream.ContractsForEdit[j].ContractsCodes+'"></label></td>';
+      }
+      s=s+'    <td><button class="spritebtn makemain" title="Сделать пользователя Главным" onclick="jqswConfirmFromOrder(\'Вы действительно хотите сделать Главным пользователя '+TStream.UserInfo[i].FIO+'?\',       \'act=smu&usercode='+TStream.UserInfo[i].CurUserCode+'\');"></button></td>';
+      s=s+'    <td><button class="spritebtn changepsw" title="Сменить пароль" onclick="jqswConfirmFromOrder(\'Вы действительно хотите назначить новый пароль пользователю '+TStream.UserInfo[i].FIO+'?\', \'act=rp&usercode='+TStream.UserInfo[i].CurUserCode+'\');"></button></td>';
+      s=s+'    <td><button class="btn redtr-btn" onclick="jqswConfirmFromOrder(\'Вы действительно хотите отправить заявку на удаление пользователя '+TStream.UserInfo[i].FIO+'?\', \'act=fndeluserstatement&usercode='+TStream.UserInfo[i].CurUserCode+'\');" title="Отправить заявку на удаление">Удалить</button></td>';
+      if (flScanDocs) {
+        s=s+'    <td>'+TStream.UserInfo[i].INN+'</td>';
+        s=s+'    <td>'+TStream.UserInfo[i].Pasport+'</td>';
+        switch (TStream.UserInfo[i].ScanState){
+          case 2: 
+            temp='<a class="users-icon-scan all" user="'+TStream.UserInfo[i].CurUserCode+'" id="icon-scan-'+TStream.UserInfo[i].temp+'" href="#" onclick="getPersonalDataClaimWindowShort(this.id);"></a>';
+          break;        
+          case 1: 
+            temp='<a class="users-icon-scan any" user="'+TStream.UserInfo[i].CurUserCode+'" id="icon-scan-'+TStream.UserInfo[i].temp+'" href="#" onclick="getPersonalDataClaimWindowShort(this.id);"></a>';
+          break;        
+          case 0: 
+            temp='<a class="users-icon-scan no" user="'+TStream.UserInfo[i].CurUserCode+'" id="icon-scan-'+TStream.UserInfo[i].temp+'" href="#" onclick="getPersonalDataClaimWindowShort(this.id);"></a>';
+          break;        
+        }
+        s=s+'    <td>'+temp+'</td>';
+      }
+      s=s+'  </tr>';
+    }
+    s=s+'</table>';
+    if (TStream.FreeUserCount>0) {
+      s=s+'<fieldset><legend>Добавить нового пользователя</legend>';
+      s=s+'  <input class="svkinput" type=text id=newlogin maxlength=20 size=10>';
+      s=s+'  <select id="ful" class="login-input" data-mcs-theme="inset-dark">';
+      for (i=0; i<TStream.FreeUserCount; i++) {
+        s=s+'    <option value='+TStream.FreeUser[i].j+fnIfStr(i==0, ' selected', '')+'>'+TStream.FreeUser[i].FIO+'</options>';
+      }
+      s=s+'  </select>';
+      s=s+'  <button id="adduser" class="btn blue-btn" onclick="ec(\'newuser\', \'newlogin=\'+$(\'#newlogin\')[0].value+\'&ful=\'+$(\'#ful\')[0].value,\'newbj\');">Добавить пользователя</button>';
+      s=s+'</fieldset>';
+    } 
+    else {
+      s=s+'Если у Вас есть сотрудники, которым Вы хотите дать доступ к системе, но их нет на этой странице,  сообщите их ФИО, должность, E-mail и прочую контактную информацию обслуживающему Вас торговому представителю Компаниии.<br>';
+    }
+    s=s+'<br><button class="btn blue-btn" onclick="getPersonalDataClaimWindowNormal();">'+
+            'Отправить заявку на добавление сотрудника</button>';
+    s=s+'</div>';  
+  }
+} // if (flRedesign and SuperVisor)
+s=s+'  </div>';    
+var sec=$('section#options');
+if (sec.length){
+  $(sec).html(''); 
+}
+else{
+  sec = document.createElement('section');
+  sec.id='options';
+  sec.className='options';
+  var main=document.getElementById("main-content");
+  main.appendChild(sec);
+  $(sec).html(''); 
+}
+$(sec).html(s); 
+if (TStream.FreeUserCount>0) {
+   $("#ful-menu").find("span.ui-selectmenu-icon").bind("click", function(event) {
+     $("#ful-menu").attr("data-mcs-theme","inset-dark");
+     $("#ful-menu").mCustomScrollbar({
+        alwaysShowScrollbar: 1
+     })
+  });      
+ }
+ $('#optionusersdiv input[type="checkbox"]').bind('change', function(event) {
+   ec('changecontractaccess', 'user='+$(this).attr('user')+'&contract='+$(this).attr('contract')+'&state='+$(this).checked);
+ });
+ $("#optionusersdiv").mCustomScrollbar({
+    alwaysShowScrollbar: 1,
+     axis: "x"
+  });
+  $("#tablecontentdiv").tabs({selected: 0, show: function(event, ui) {}});
+  $("#getting-radio-"+TStream.delivery).prop('checked', true);  
+  $("#getting-radio-"+TStream.delivery).trigger('change');     
+}
+
+
 function New_getOrderListPage(){
-  s='';
+  var s='';
   s=s+'<div class="order-container">';
   s=s+'  <div class="order-header">';
   s=s+'    <div class="header-title row">';
@@ -5524,10 +5958,10 @@ function New_getOrderListPage(){
   s=s+'        <ul class="order-list-btn">';
   if (TStream.STATUS==orstForming) {
     s=s+'          <li><a href="#" onclick="ec(\'refreshprices\', \'order='+TStream.OrderCode+'\',\'newbj\');" class="update" title="Обновить цены в заказах"></a></li>';
-    s=s+'          <li><a href="#" class="merge" onclick="ec(\'fillheaderbeforeprocessing\', \'ordr='+TStream.OrderCode+'\',\'abj\');" title="Отправить заказ на обработку"></a></li>';
+    s=s+'          <li><a href="#" class="merge" onclick="ec(\'fillheaderbeforeprocessing\', \'ordr='+TStream.OrderCode+'\',\'newbj\');" title="Отправить заказ на обработку"></a></li>';
   }
   else {
-    s=s+'          <li><a href="#" class="dop-info"  onclick="ec(\'fillallparametrsorderdopdata\', \'ordercode='+TStream.OrderCode+'\',\'abj\'" title="Показать дополнительную информацию"></a></li>';
+    s=s+'          <li><a href="#" class="dop-info"  onclick="ec(\'fillallparametrsorderdopdata\', \'ordercode='+TStream.OrderCode+'\',\'newbj\'" title="Показать дополнительную информацию"></a></li>';
   }
   if (TStream.CURRENCY==TStream.ballsName) {
     //s=s+'          <li><a href="#" onclick="window.open('''+Request.ScriptName+'/ac?order='+OrderCode+'&contract='+(IntToStr(ContractID))+''" class="money" title="Показать заказ в '+fnIfStr(acctype='0', 'гривне', 'евро')+'"></a></li>
@@ -5582,10 +6016,10 @@ function New_getOrderListPage(){
  s=s+'      <div class="delivery-details">';
  s=s+'        <p  title="Задать комментарий и данные по получению товара" class="client-info shipment">';
  if (TStream.STATUS==orstForming) {
-   s=s+'          <span id="orderdeliverydata" onclick=\'ec("fillheaderbeforeprocessing", "ordr='+TStream.OrderCode+'","abj"); \' >'+TStream.deliveryStr+'</span>';
+   s=s+'          <span id="orderdeliverydata" onclick=\'ec("fillheaderbeforeprocessing", "ordr='+TStream.OrderCode+'","newbj"); \' >'+TStream.deliveryStr+'</span>';
  }
  else {
-   s=s+'          <span id="orderdeliverydata" onclick=\' ec("fillallparametrsorderdopdata", "ordercode='+TStream.OrderCode+'","abj"); return false;\' >'+TStream.deliveryStr+'</span>';
+   s=s+'          <span id="orderdeliverydata" onclick=\' ec("fillallparametrsorderdopdata", "ordercode='+TStream.OrderCode+'","newbj"); return false;\' >'+TStream.deliveryStr+'</span>';
  }
  if (flMeetPerson) {
    s=s+'        <p class="client-info meet-person">';
@@ -5651,7 +6085,7 @@ function New_getOrderListPage(){
      s=s+'<td id="td'+TStream.arrtable[i].CurWareCode+'" class="col-discription with-border">';
    }
    s=s+'<a title="'+TStream.arrtable[i].Brand+'" onclick="return viewWareSearchDialog(this);" '+
-       'href="'+Request.ScriptName+'/wareinfo?warecode='+TStream.arrtable[i].CurWareCode+'&model=&node=&eng=&filter=&btnout=true&bonus='+
+       'href="'+scriptname+'/wareinfo?warecode='+TStream.arrtable[i].CurWareCode+'&model=&node=&eng=&filter=&btnout=true&bonus='+
        TStream.IsBonus+'" target="_blank" warecode="'+TStream.arrtable[i].CurWareCode+'" style="color: #000;"><span class="title">'+TStream.arrtable[i].WareName+'</span></a>';   // наименование товара
    s=s+'</td>';
    if (TStream.STATUS==orstForming) {
@@ -5671,7 +6105,7 @@ function New_getOrderListPage(){
        s=s+'<td class="col with-border" ><input autocomplete="off" oldvalue_="'+TStream.arrtable[i].StoragesData[j][j].CurValue+'" id="'+TStream.arrtable[i].CurWareCode+'_'+TStream.Storages[j].Code+'"'+
        ' size="3" maxlength="5" title="Текущее количество заказа '+TStream.arrtable[i].StoragesData[j][j].FromStorages+'" value="'+TStream.arrtable[i].StoragesData[j][j].CurValue+'" '+
        'style="'+TStream.arrtable[i].StoragesData[j][j].Style+'" onkeyup="inputSetColor(this,'+TStream.arrtable[i].CurWareCode+',event.keyCode);" '+
-       'onChange="if (this.value>0) { elNew(this);} else { jqswMessageError(\'Количество не может быть отрицательным\');"></td>';
+       'onChange="if (this.value>0) { elNew(this);} else { jqswMessageError(\'Количество не может быть отрицательным\');}"></td>';
       }
       else {
         s=s+'<td>'+TStream.Storages[j].CurValue+'</td>';
@@ -5755,7 +6189,7 @@ function New_getOrderListPage(){
 }
 
 function New_getAcListPage(){
-  s='';
+  var s='';
   s=s+'<div class="order-container">';
   s=s+'  <div class="order-header">';
   s=s+'    <div class="header-title row">';
@@ -5822,9 +6256,192 @@ function New_getAcListPage(){
  }
  $(sec).html(s); 
  synqcolsNew(document.getElementById("order-in-uah-header"),document.getElementById("order-in-uah-table-body"),12,17);
-
 }
 
+function New_getReservPage(){
+ var s='';
+ s=s+'<div id="reserv-tree-tabs" class="contracts-body">';
+ s=s+'  <ul id="reserv-tree-tabs-header" class="search-tree-tabs-header">';
+ s=s+'    <li><a href="#reserv-tab" onclick="location.href=\''+scriptname+'/reserv\';"  title="Заявки" >Заявки</a></li>';
+ s=s+'    <li><a href="#wares-tab"  onclick="location.href=\''+scriptname+'/reserv?mode=wares\';" title="Товары" >Товары</a></li>';
+ s=s+'  </ul>';
+ s=s+' <div class="reserv-body" id="reserv-tab" ></div>';
+ s=s+' <div class="reserv-body" id="wares-tab" ></div>';
+ if (TStream.mode =='wares') {
+   if (TStream.AccountsCount>0) {
+     var s1='';
+     s1=s1+'       <table id="reserv-table-header" class="table table-header"> ';
+     s1=s1+'         <tr>';
+     s1=s1+'<th class="col pointer" >';
+     s1=s1+fnDrawTitleForSortingRedisign(TStream.AccountsOrder, TStream.AccountsDesc, 'warereservorder', 'warereservdesc', 'WAREOFFICIALNAME', 'Наменование товара');
+     s1=s1+'</th>';
+     s1=s1+'<th class="col pointer" >';
+     s1=s1+fnDrawTitleForSortingRedisign(TStream.AccountsOrder, TStream.AccountsDesc, 'warereservorder', 'warereservdesc', 'DCACLNCOUNT', 'Кол-во');
+     s1=s1+'</th>';
+     s1=s1+'<th class="col pointer" >';
+     s1=s1+fnDrawTitleForSortingRedisign(TStream.AccountsOrder, TStream.AccountsDesc, 'warereservorder', 'warereservdesc', 'DCACLNPRICE', 'Цена');
+     s1=s1+'</th>';
+     s1=s1+'<th>';
+     s1=s1+'Сумма';
+     s1=s1+'</th>';
+     s1=s1+'<th class="col pointer" >';
+     s1=s1+fnDrawTitleForSortingRedisign(TStream.AccountsOrder, TStream.AccountsDesc, 'warereservorder', 'warereservdesc', 'DCACCRNCCODE', 'Валюта');
+     s1=s1+'</th>';
+     if (TStream.ContractsCount>1) {
+       s1=s1+'<th class="col pointer" >';
+       s1=s1+fnDrawTitleForSortingRedisign(TStream.AccountsOrder, TStream.AccountsDesc, 'warereservorder', 'warereservdesc', 'rContCode', 'Контракт');
+       s1=s1+'</th>';
+     }
+     s1=s1+'<th class="col pointer" >';
+     s1=s1+fnDrawTitleForSortingRedisign(TStream.AccountsOrder, TStream.AccountsDesc, 'warereservorder', 'warereservdesc', 'DCACNUMBER', 'Номер '+TStream.DocName);   //!!!Номер счета!!!
+     s1=s1+'</th>';
+     s1=s1+'<th class="col pointer" >';
+     s1=s1+fnDrawTitleForSortingRedisign(TStream.AccountsOrder, TStream.AccountsDesc, 'warereservorder', 'warereservdesc', 'DCACDATE', 'Дата '+TStream.DocName);    //!!!Дата счета!!!
+     s1=s1+'</th>';
+     s1=s1+'         </tr>';
+     s1=s1+'       </table>';
+     s1=s1+'     <div class="order-table-body-wrap" id="reserv-table-body-wrap" data-mcs-theme="inset-dark"> ';
+     s1=s1+'       <table class="table table-body" id="reserv-table-body"> ';
+     for (i=0; i<TStream.AccountsCount; i++) {   
+       s1=s1+'       <tr class="reserv-tr'+fnIfStr((i%2)==0, ' current', '')+'">'; //??
+       s1=s1+'         <td class="col with-border"><span title="'+TStream.TitleWareName+'">'+TStream.WareName+'<span></td>'; // Наменование товара
+       s1=s1+'         <td class="col with-border">'+TStream.Qty+'</td>'; //Кол-во
+       s1=s1+'         <td class="col with-border">'+TStream.Price+'</td>'; //Цена
+       s1=s1+'         <td class="col with-border">'+TStream.TotalPrice+'</td>'; //Сумма
+       s1=s1+'         <td class="col with-border"><img class="orderrowimg" src='+fnIfStr(AccVal=ballsName, '"/images/mainmenu/loyalty_01.png"','"/images/tr.gif"')+'>'+AccVal+'</td>'; //Валюта
+       if (TStream.ContractsCount>1) {
+         s1=s1+'       <td class="col with-border">'+TStream.stemp+'</td>'; //Контракт
+       }
+       s1=s1+'         <td class="col with-border" ><a target="_blank" href="'+scriptname+'/showdoc?type='+TStream.docAccount+'&id='+TStream.DocId+'&wares=true&isorders=true">'+TStream.DocNum+'</a></td>'; //Номер счета
+       s1=s1+'         <td class="col" >'+TStream.DocDate+'</td>'; //Дата счета
+       s1=s1+'       </tr>';
+     }
+     s1=s1+'       </table>';
+     s1=s1+'<table class="table table-body" cellspacing=0 id="tablecontent2" >';
+     s1=s1+'</table>';
+     s1=s1+'     </div>';
+   }
+ }
+ else {
+   if (TStream.AccountsCount>0)  {
+     var s1='';
+     s1=s1+'<input type=hidden id="freecredit" value="'+StringReplace(FloatToStr(CredLimit-Debt), ',', '.', [rfReplaceAll])+'">';
+     s1=s1+'       <table id="reserv-table-header" class="table table-header"> ';
+     s1=s1+'         <tr>';
+     s1=s1+'           <th class="col pointer" >';
+     s1=s1+fnDrawTitleForSortingRedisign(AccountsOrder, AccountsDesc, 'accountsorder', 'accountsdesc', 'DCACDATE', 'Дата '+fnGetGBDocName(docAccount, 1, 0, 2));
+     s1=s1+'           </th>';
+     s1=s1+'           <th class="col pointer" >';
+     s1=s1+fnDrawTitleForSortingRedisign(AccountsOrder, AccountsDesc, 'accountsorder', 'accountsdesc', 'DCACNUMBER', 'Номер '+fnGetGBDocName(docAccount, 1, 0, 2));
+     s1=s1+'           </th>';
+     s1=s1+'           <th class="col pointer" >';
+     s1=s1+fnDrawTitleForSortingRedisign(AccountsOrder, AccountsDesc, 'accountsorder', 'accountsdesc', 'DCACSUMM', 'Сумма');
+     s1=s1+'           </th>';
+     s1=s1+'           <th class="col pointer" >';
+     s1=s1+'Валюта';
+     s1=s1+'           </th>';
+     if (ContractsCount>1)  {
+       s1=s1+'           <th class="col pointer" >';
+       s1=s1+fnDrawTitleForSortingRedisign(AccountsOrder, AccountsDesc, 'accountsorder', 'accountsdesc', 'rContCode', 'Контракт');
+       s1=s1+'          </th>';
+     }
+     s1=s1+'           <th class="col">Дата заказа</th>';
+     s1=s1+'           <th class="col">Номер заказа</th>';
+     s1=s1+'           <th class="col">Блокирован</th>';
+     s1=s1+'         </tr>';
+     s1=s1+'       </table>';
+     s1=s1+'     <div class="order-table-body-wrap" id="reserv-table-body-wrap" data-mcs-theme="inset-dark"> ';
+     s1=s1+'       <table class="table table-body" id="reserv-table-body"> ';
+     for (i=0; i<TStream.AccountsCount; i++) { 
+       if TStream.AccVal=ballsName 
+         s1=s1+'       <tr class="reserv-tr'+fnIfStr((i%2)=0, ' current', '')+'" onclick="location.href=\'+Request.ScriptName+'/showdoc?type='+IntToStr(docAccount)+'&id='+CurAccountID+'&reserv=true\''">' //??
+       else
+         s1=s1+'       <tr class="reserv-tr'+fnIfStr((i%2)=0, ' current', '')+'" onclick="location.href=\'+Request.ScriptName+'/showdoc?type='+IntToStr(docAccount)+'&id='+CurAccountID+'&reserv=true\''">'; //??
+       s1=s1+'<td  class="col with-border">'+AccDate+'</td>'; //Дата счета
+       s1=s1+'<td  class="col with-border" ><a target="_blank" onclick="event.stopPropagation();" href="'+Request.ScriptName+'/showdoc?type='+IntToStr(docAccount)+'&id='+CurAccountID+'&reserv=true&isorders=true">'+AccNum+'</a>'; //Номер счета
+       if Commentary<>''  {
+         s1=s1+'<img style="cursor: pointer" title="'+Commentary+'" onClick=\''jqswfillInfo("'+Commentary+'","Комментарий",20,150,10); event.stopPropagation(); return false;\'' src="/images/orders/com.png">'; //Комментарий
+       }
+       s1=s1+'</td>';
+       s1=s1+'<td   class="col with-border">'+FormatFloat('# ##0.00', AccSum)+'</td>'; //Сумма счета
+       s1=s1+'<td   class="col with-border"><img class="orderrowimg" src='+fnIfStr(AccVal=ballsName, '"/images/mainmenu/loyalty_01.png"','"/images/tr.gif"')+'>'+AccVal+'</td>'; //Валюта счета
+       if (ContractsCount>1)  {
+         s1=s1+'<td  class="col with-border">'+stemp+'</td>'; //Контракт
+       }
+       if (CurOrderID='')  {
+         s1=s1+'<td  class="col with-border">&nbsp;</td><td  class="col with-border">&nbsp;</td>';
+       end else {
+         s1=s1+'<td  class="col with-border">'+Stream.ReadStr+'</td>'; //Дата заказа
+         s1=s1+'<td  class="col with-border"><a target="_blank" href='+Request.ScriptName+'/order?order='+CurOrderID+'>'+Stream.ReadStr+'</td>'; //Номер заказа
+       }
+       s1=s1+'<td class="col">';
+       if (CredCurrency<>'') and (CredCurrency<>AccVal)  {
+         // приводим валюту документа к валюте кредита
+         if AccVal='грн.'  {
+           AccSum=RoundTo(AccSum/Curs, -2);
+             end else {
+               AccSum=RoundTo(AccSum*Curs, -2);
+             }
+           }
+           if SaleBlock or (AccSum>(CredLimit-Debt)) or Blocked  {
+             s1=s1+'<a style="color: red; font-weight: bold;" title="'+fnIfStr(SaleBlock, WarningMessage, 'Сумма '+fnGetGBDocName(docAccount, 1, 0, 2)+' превышает свободный остаток кредита')+'" href="'+fnIfStr(SaleBlock, Request.ScriptName+'/debt', '')+'">';      //!!!Сума счета!!!
+             s1=s1+'Да</a>';
+             s1=s1+'<input type=hidden id="sum'+IntToStr(i)+'" value="'+StringReplace(FloatToStr(AccSum), ',', '.', [rfReplaceAll])+'">';
+           end else {
+              s1=s1+'нет';
+           }
+           s1=s1+'</td>';
+           s1=s1+'</tr>';
+         }
+         s1=s1+'<span id="sam"></span>';
+                   s1=s1+'       </table>';
+         s1=s1+'<table class="table table-body" cellspacing=0 id="tablecontent2" >';
+         s1=s1+'</table>';
+        s1=s1+'     </div>';
+     }
+
+ s=s+'   </div>';
+ var sec=$('section#reserv');
+ if (sec.length){
+    $(sec).html(''); 
+ }
+ else{
+   sec = document.createElement('section');
+   sec.id='reserv';
+   sec.className='reserv';
+   var main=document.getElementById("main-content");
+   main.appendChild(sec);
+   $(sec).html(''); 
+ }
+ $(sec).html(s); 
+ if (TStream.mode =='wares') {
+   if (TStream.AccountsCount>0) {
+     synqcols(document.getElementById('tablecontent2'), document.getElementById("reserv-table-header"), document.getElementById("reserv-table-body"), $("#reserv-table-body").width(), false);   
+     $("#reserv-tree-tabs").tabs();
+     $("#wares-tab").html(s1);     //!!!Нет счетов, по которым зарезервирован товар!!!
+     $("#reserv-tree-tabs").tabs("option", "active", 1);
+   }
+   else {
+     $("#reserv-tree-tabs").tabs();
+     $("#wares-tab").html("<div style=\'margin: 10px;\'>Нет зарезервированного товара</div>");     //!!!Нет счетов, по которым зарезервирован товар!!!
+     $("#reserv-tree-tabs").tabs("option", "active", 1);
+  }
+ }
+ else{
+   if (TStream.AccountsCount>0){
+     synqcols(document.getElementById('tablecontent2'), document.getElementById("reserv-table-header"), document.getElementById("reserv-table-body"), $("#reserv-table-body").width(), false); 
+     $("#reserv-tree-tabs").tabs();
+     $("#reserv-tab").html(s1);     //!!!Нет счетов, по которым зарезервирован товар!!!
+     $("#reserv-tree-tabs").tabs("option", "active", 0);
+   }       
+   else {
+     $("#reserv-tree-tabs").tabs();
+     $("#reserv-tab").html("<div style=\'margin: 10px;\'>Нет зарезервированых товаров</div>");     //!!!Нет счетов, по которым зарезервирован товар!!!
+     $("#reserv-tree-tabs").tabs("option", "active", 0);
+   }          
+  }            
+  setActiveIcon("left li a.reserve");
+}
 
 function addtochangeTT(act, num) {  //добавляет, удаляет торговые точки
   var s=res='';
@@ -6370,3 +6987,48 @@ function sendEmailWindowForUser(mess){
     ec('sendorderforchangeemaildata', data, 'newbj');
   }
 }
+
+function changeTTOptionsPage(elem,optDestPoint){
+  if ((elem.value!=0) && ($('#_ttdefaultselect').attr('_oldval') != elem.value)) { 
+    ec('saveoption', 'type='+optDestPoint+'&val='+elem.value+'&_oldval='+$('#_ttdefaultselect').attr('_oldval'),'newbj'); 
+  } 
+}
+
+function changeDeliveryTypeOptionsPage(elem,optDeliveryType,isSaveOption,DestID){
+  var v=$("#kinddeliverydefaultdiv input[type='radio']:checked").val();
+  if (v==0) {
+    $('#_ttdefaultdiv').css('display', 'block');
+  };
+  if (v==1) {
+    $('#_ttdefaultdiv').css('display', 'none');
+  }
+  if (v==2) {
+    $('#_ttdefaultdiv').css('display', 'none');
+  }
+  if (isSaveOption) {    
+    ec('saveoption', 'type='+optDeliveryType+'&val='+elem.value,'newbj');
+  }
+  else{
+    $("#_ttdefaultselect [value='"+DestID+"']").attr("selected", "selected");
+    $("#_ttdefaultselect-button .ui-selectmenu-text").text($("#_ttdefaultselect option:selected").text());
+  }    
+}
+
+function sfbaNew(form, thread) { //для новой системы работы CGI
+//alert('$(form).serialize()');
+  if (!thread) thread="newbj";
+  startLoadingAnimation();
+  $.ajax({
+    url: ((form.action)?form.action:scriptname+"/"+thread),
+    type: "post",
+    data: $(form).serialize(),
+    complete: function(obj, stat) {
+      stopLoadingAnimation();
+      //if (command=='senderrormessage') alert(obj.responseText);
+    },
+    dataType: "script"
+  });
+  return false;
+}
+
+    

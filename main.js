@@ -671,9 +671,8 @@ $( function() {
     $("#_ttdefaultselect").selectmenu({
       change: function( event, ui ) {
         var selectVal = ui.item.value;
-        //console.log(selectVal);
         //currentSorterType = selectVal;
-        //sortGrid(currentSorterType);
+        changeTTOptionsPage(this,$(this).attr("_optDestPoint"));
       }
     });
     

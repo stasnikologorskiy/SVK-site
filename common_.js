@@ -1,6 +1,7 @@
 ﻿var isWA;
 var BallsName="UNIT";
 var flNewModeCGI=false;
+var flNewOrderMode=false;
 var flRedesign=false;
 var DeltaDate = new Date();
 var IsEmptySheduler=true;
@@ -1284,7 +1285,7 @@ function clickDeliveryBtn(elem){
    var deliverydate=$('#fillheaderbeforeprocessingdiv select[name^="deliverydate"] option:selected').text(); 
    var shedulercode=$('#shedulercode').val(); 
    if ( ($('#deliveryshedulerdiv').attr('tt')!=tt) || ($('#deliveryshedulerdiv').attr('deliverydate')!=deliverydate.substring(0,10)) ){ 
-     ec('filldeliverysheduler', '_tt='+tt+'&_deliverydate='+deliverydate.substring(0,10)+'&_shedulercode='+shedulercode+'&contractid='+$('#curcontract').val(),fnIfStr(flNewModeCGI,'newbj','abj'));
+     ec('filldeliverysheduler', '_tt='+tt+'&_deliverydate='+deliverydate.substring(0,10)+'&_shedulercode='+shedulercode+'&contractid='+$('#curcontract').val(),fnIfStr(flNewOrderMode,'newbj','abj'));
    }
    else { $('#deliveryshedulerdiv').dialog('open');
    }
@@ -1436,20 +1437,20 @@ function checkWareOnStorage(){//для окна выболра доставки 
         $("#deliverycommentdiv").css("display","none");
         if ( $("#gift").length){
           var OrderCode=$("#gift").attr("_ordr");
-          ec('checkorderwarerests', 'shipdate=0&ordr='+OrderCode+'&deliverykind='+v,fnIfStr(flNewModeCGI,"newbj","abj")); 
+          ec('checkorderwarerests', 'shipdate=0&ordr='+OrderCode+'&deliverykind='+v,fnIfStr(flNewOrderMode,"newbj","abj")); 
         }
         else{
-          ec('checkorderwarerests', 'shipdate=0&ordr='+document.getElementById('addlines').value+'&deliverykind='+v,fnIfStr(flNewModeCGI,"newbj","abj")); 
+          ec('checkorderwarerests', 'shipdate=0&ordr='+document.getElementById('addlines').value+'&deliverykind='+v,fnIfStr(flNewOrderMode,"newbj","abj")); 
         }
         
       }
       else{
         if ( $("#gift").length){
           var OrderCode=$("#gift").attr("_ordr");
-          ec('checkorderwarerests', 'shipdate='+deliverydate.substr(0,10)+'&ordr='+OrderCode+'&deliverykind='+v,fnIfStr(flNewModeCGI,"newbj","abj"));
+          ec('checkorderwarerests', 'shipdate='+deliverydate.substr(0,10)+'&ordr='+OrderCode+'&deliverykind='+v,fnIfStr(flNewOrderMode,"newbj","abj"));
         }
         else{
-          ec('checkorderwarerests', 'shipdate='+deliverydate.substr(0,10)+'&ordr='+document.getElementById('addlines').value+'&deliverykind='+v,fnIfStr(flNewModeCGI,"newbj","abj"));
+          ec('checkorderwarerests', 'shipdate='+deliverydate.substr(0,10)+'&ordr='+document.getElementById('addlines').value+'&deliverykind='+v,fnIfStr(flNewOrderMode,"newbj","abj"));
         }
         
       }  
@@ -1459,10 +1460,10 @@ function checkWareOnStorage(){//для окна выболра доставки 
  else {
   if (isHaveDate) {
      if ( $("#gift").length){
-       ec('checkorderwarerests', 'shipdate='+deliverydate.substr(0,10)+'&ordr='+$("#gift").attr("_ordr")+'&deliverykind='+v,fnIfStr(flNewModeCGI,"newbj","abj"));   
+       ec('checkorderwarerests', 'shipdate='+deliverydate.substr(0,10)+'&ordr='+$("#gift").attr("_ordr")+'&deliverykind='+v,fnIfStr(flNewOrderMode,"newbj","abj"));   
      }
      else{
-       ec('checkorderwarerests', 'shipdate='+deliverydate.substr(0,10)+'&ordr='+document.getElementById('addlines').value+'&deliverykind='+v,fnIfStr(flNewModeCGI,"newbj","abj")); 
+       ec('checkorderwarerests', 'shipdate='+deliverydate.substr(0,10)+'&ordr='+document.getElementById('addlines').value+'&deliverykind='+v,fnIfStr(flNewOrderMode,"newbj","abj")); 
      }
   }else{
     $("#warningwarestr").text('');
@@ -1539,13 +1540,13 @@ function sendAllData(){  //сохраняет все параметры  фор�
  if ( $("#gift").length){
    $("#ordr").val($("#gift").attr("_ordr"));
    $("#sendordermark").val('3');
-   ec("saveparametrsfromorder", $("#fillheaderbeforeprocessingdiv form").serialize()+'&joinacc='+joinacc,fnIfStr(flNewModeCGI,"newbj","abj"));
+   ec("saveparametrsfromorder", $("#fillheaderbeforeprocessingdiv form").serialize()+'&joinacc='+joinacc,fnIfStr(flNewOrderMode,"newbj","abj"));
   }
  else if ($("#invoicenum").length){
        $("#ordr").val(document.getElementById('invoicecode').value);
        $("#forfirmiddeliv").val(document.getElementById('forfirmid').value);  
         //alert(forfirmid);
-        ec("saveparametrsfromorder", $("#fillheaderbeforeprocessingdiv form").serialize()+'&joinacc='+joinacc,fnIfStr(flNewModeCGI,"newbj","abj"));  
+        ec("saveparametrsfromorder", $("#fillheaderbeforeprocessingdiv form").serialize()+'&joinacc='+joinacc,fnIfStr(flNewOrderMode,"newbj","abj"));  
           }
       else{
        $("#ordr").val(document.getElementById('addlines').value);
@@ -1553,7 +1554,7 @@ function sendAllData(){  //сохраняет все параметры  фор�
        //alert($("#joinaccountcheck").prop("checked"));
        if ($("#joinaccountcheck").prop("checked")) {joinacc=true;}
        meettext=$("#meet-person-select-button .ui-selectmenu-text").text();
-       ec("saveparametrsfromorder", $("#fillheaderbeforeprocessingdiv form").serialize()+'&joinacc='+joinacc+'&meet-text='+meettext,fnIfStr(flNewModeCGI,"newbj","abj"));
+       ec("saveparametrsfromorder", $("#fillheaderbeforeprocessingdiv form").serialize()+'&joinacc='+joinacc+'&meet-text='+meettext,fnIfStr(flNewOrderMode,"newbj","abj"));
       }
  //} 
 }  
@@ -1591,20 +1592,20 @@ function saveAllData(){  //сохраняет все параметры  фор�
   if ( $("#gift").length){
    $("#ordr").val($("#gift").attr("_ordr"));
    $("#sendordermark").val('3');
-   ec("saveparametrsfromorder", $("#fillheaderbeforeprocessingdiv form").serialize()+'&joinacc='+joinacc,fnIfStr(flNewModeCGI,"newbj","abj"));
+   ec("saveparametrsfromorder", $("#fillheaderbeforeprocessingdiv form").serialize()+'&joinacc='+joinacc,fnIfStr(flNewOrderMode,"newbj","abj"));
   }
  else if ($("#invoicenum").length){
        $("#ordr").val(document.getElementById('invoicecode').value);
        $("#forfirmiddeliv").val(document.getElementById('forfirmid').value);  
         //alert(forfirmid);
-        ec("saveparametrsfromorder", $("#fillheaderbeforeprocessingdiv form").serialize()+'&joinacc='+joinacc,fnIfStr(flNewModeCGI,"newbj","abj"));  
+        ec("saveparametrsfromorder", $("#fillheaderbeforeprocessingdiv form").serialize()+'&joinacc='+joinacc,fnIfStr(flNewOrderMode,"newbj","abj"));  
           }
       else{
        $("#ordr").val(document.getElementById('addlines').value);
        $("#sendordermark").val('3');
        if ($("#joinaccountcheck").prop("checked")) {joinacc=true;}
        meettext=$("#meet-person-select-button .ui-selectmenu-text").text();
-       ec("saveparametrsfromorder", $("#fillheaderbeforeprocessingdiv form").serialize()+'&joinacc='+joinacc+'&meet-text='+meettext,fnIfStr(flNewModeCGI,"newbj","abj"));
+       ec("saveparametrsfromorder", $("#fillheaderbeforeprocessingdiv form").serialize()+'&joinacc='+joinacc+'&meet-text='+meettext,fnIfStr(flNewOrderMode,"newbj","abj"));
       
       }
   
@@ -2086,7 +2087,6 @@ function setpodborsubdiv(num, direct, text) {
        if ($("#selbymodeldivauto").hasClass('hide')){
          $("#selbymodeldivauto").removeClass('hide');
          $("#automodelheaderdiv").css("display","none"); 
-         //$("#sel_auto_ul_0").empty();
          $("#selbymodeltreedivauto").addClass('hide');
        }
        else{
@@ -2178,29 +2178,23 @@ function setpodborsubdiv(num, direct, text) {
    var OtherBlocks;
    var ta;
    if  (selected==0){
-     //vv curblock=$("#tabs-1 .selectpartsdiv[number="+num+"]");
      curblock=panel.find('.selectpartsdiv[number='+num+']');	 
-//console.log(curblock);	 
-     //vv OtherBlocks=$("#tabs-1 .selectpartsdiv[number!="+num+"]");
 	   OtherBlocks=panel.find('.selectpartsdiv[number!='+num+']');
-     //console.log(num+'der'+direct);
      if (num==0) { //начальная страница
        if (direct==1){
 	       if ($("#search-tree-tabs").attr("avto")=='pc') {$("#origprogsheader").css("display","none");};  //vv
 		     if ($("#search-tree-tabs").attr("avto")=='cv') {$("#origprogsheader-cv").css("display","none");};//vv 
-//vv         $("#origprogsheader").css("display","none"); 
-//console.log('num==0  direct==1');
          if (text !== undefined){
-console.log('text !== undefined');		 
            curblock.html(text);
          }
          else{
-           //ec('laximostartpage', '', 'abj');
-           tunelogo('true');
+           intervalID5=setTimeout(function(e){
+            clearInterval(intervalID4);
+            tunelogo('true');
+           }, 1000);
          }
        }
        else{
-         //vv $("#origprogsheader").css("display","none");
          if ($("#search-tree-tabs").attr("avto")=='pc') {$("#origprogsheader").css("display","none");};  //vv
 		     if ($("#search-tree-tabs").attr("avto")=='cv') {$("#origprogsheader-cv").css("display","none");};//vv	 
        }
@@ -2209,47 +2203,30 @@ console.log('text !== undefined');
        if (direct==0){
         curblock=$("#tabs-1 .selectpartsdiv[number="+(num-1)+"]");
         OtherBlocks=$("#tabs-1 .selectpartsdiv[number!="+(num-1)+"]");
-        //console.log(num);
-        //console.log('w'+curblock.html()+'d');
-//console.log($("#search-tree-tabs").attr("avto"));
         if ((curblock.html()=='') && (num==1)){ 
-//console.log('laximostartpage');		
           ec('laximostartpage', 'avto='+$("#search-tree-tabs").attr("avto"), 'abj'); //vv
         }
         if ($("#search-tree-tabs").attr("avto")=='pc') {ta=''};  //vv
         if ($("#search-tree-tabs").attr("avto")=='cv') {ta='-cv'};//vv	
-//console.log('nazad');
-//console.log($("#origprogsheader"+ta+" .header-link .back-btn"));
         $("#origprogsheader"+ta+" .header-link .back-btn").bind( "click", function() {
-//console.log('direct==0');		
            setpodborsubdiv(num-1, 0);
         });
-        //$("#origprogsheader").css("display","none"); 
        }
        if (direct==1){
 	       curblock.html(text);
-         //vv $("#origprogsheader").css("display","block"); 
 		     if ($("#search-tree-tabs").attr("avto")=='pc') {$("#origprogsheader").css("display","block");};  //vv
 		     if ($("#search-tree-tabs").attr("avto")=='cv') {$("#origprogsheader-cv").css("display","block");};//vv
          if (num>0){
            if ($("#search-tree-tabs").attr("avto")=='pc') {ta=''};  //vv
            if ($("#search-tree-tabs").attr("avto")=='cv') {ta='-cv'};//vv	
-//console.log('num>0');
-//console.log($("#origprogsheader"+ta+" .header-link .back-btn"));		 
            $("#origprogsheader .header-link .back-btn, #origprogsheader-cv .header-link .back-btn").bind( "click", function() {
              setpodborsubdiv(num-1,1);
            });
          }
          else{
-           //vv $("#origprogsheader").css("display","none");
 		       if ($("#search-tree-tabs").attr("avto")=='pc') {$("#origprogsheader").css("display","none");}; //vv
 		       if ($("#search-tree-tabs").attr("avto")=='cv') {$("#origprogsheader-cv").css("display","none");};//vv
-//console.log('laximostartpage');		   
            ec('laximostartpage', 'avto='+$("#search-tree-tabs").attr("avto"), 'abj'); //vv
-            //$("#origprogsheader .header-link .back-btn").bind( "click", function() {
-             //setpodborsubdiv(num-1, 1);
-             //ec('laximostartpage', '', 'abj');
-           //});
          }
        }
      }
